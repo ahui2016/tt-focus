@@ -14,12 +14,14 @@ CREATE TABLE IF NOT EXISTS task
 (
     id      text   PRIMARY KEY COLLATE NOCASE,
     name    text   NOT NULL UNIQUE COLLATE NOCASE,
-    alias   text   NOT NULL UNIQUE COLLATE NOCASE,
+    alias   text   NOT NULL UNIQUE COLLATE NOCASE
 );
 
 CREATE TABLE IF NOT EXISTS event
 (
     id      text   PRIMARY KEY COLLATE NOCASE,
+    status  text   NOT NULL COLLATE NOCASE,
+    laps    blob   NOT NULL,
+    work    int    NOT NULL
 );
 """
-

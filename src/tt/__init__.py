@@ -2,5 +2,5 @@
 
 __package_name__ = "tt-focus"
 __version__ = "0.0.1"
-__author__ "102419@gmail.com"
+__author__ = "102419@gmail.com"
 __license__ = "MIT"
