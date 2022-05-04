@@ -19,9 +19,12 @@ CREATE TABLE IF NOT EXISTS task
 
 CREATE TABLE IF NOT EXISTS event
 (
-    id      text   PRIMARY KEY COLLATE NOCASE,
-    status  text   NOT NULL COLLATE NOCASE,
-    laps    blob   NOT NULL,
-    work    int    NOT NULL
+    id        text   PRIMARY KEY COLLATE NOCASE,
+    task_id   text   REFERENCES task(id) COLLATE NOCASE,
+    status    text   NOT NULL COLLATE NOCASE,
+    laps      blob   NOT NULL,
+    work      int    NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_event_status ON event(status);
 """

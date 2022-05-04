@@ -1,7 +1,8 @@
 import arrow
-from typing import Final
+from typing import Final, TypedDict
 from dataclasses import dataclass
 from enum import Enum, auto
+from random import randrange
 import msgpack
 
 
@@ -16,6 +17,28 @@ def now() -> int:
 def date_id() -> str:
     """时间戳转base36"""
     return base_repr(now(), 36)
+
+
+def rand_id() -> str:
+    """只有 4 个字符的随机字符串"""
+    n_min = int("1000", 36)
+    n_max = int("zzzz", 36)
+    n_rand = randrange(n_min, n_max + 1)
+    return base_repr(n_rand, 36)
+
+
+class Config(TypedDict):
+    split_min: int  # 小于该值自动忽略
+    pause_min: int  # 小于该值自动忽略
+    pause_max: int  # 大于该值自动忽略
+
+    def pack(self) -> bytes:
+        return msgpack.packb(self)
+
+
+class MultiText(TypedDict):
+    cn: str
+    en: str
 
 
 class EventStatus(Enum):
@@ -34,17 +57,37 @@ Lap = tuple[str, int, int, int]
 
 
 @dataclass
-class Event:
-    id: str              # date_id
-    status: EventStatus  # 状态
-    laps: tuple[Lap]     # 过程
-    work: int            # 有效工作时间合计：秒
+class Task:
+    id: str  # rand_id
+    name: str
+    alias: str
 
-    def __init__(self, d: dict | None) -> None:
-        self.id = (d.id,)
-        self.status = (EventStatus[d.status],)
-        self.laps = (msgpack.unpackb(d.laps, use_list=False),)
-        self.work = d.work
+    def __init__(self, d: dict) -> None:
+        self.id = d.get("id", rand_id())
+        self.name = d["name"]
+        self.alias = d.get("alias", "")
+
+
+@dataclass
+class Event:
+    id: str  # date_id
+    task_id: str
+    status: EventStatus  # 状态
+    laps: tuple[Lap]  # 过程
+    work: int  # 有效工作时间合计：秒
+
+    def __init__(self, d: dict) -> None:
+        self.id = d.get("id", date_id())
+        self.task_id = d["task_id"]
+        status = d.get("status", "Running")
+        self.status = EventStatus[status]
+        lap = (LapName.Split.name, now(), 0, 0)
+        self.laps = (
+            msgpack.unpackb(d["laps"], use_list=False)
+            if d.get("laps", False)
+            else (lap,)
+        )
+        self.work = d.get("work", 0)
 
     def to_dict(self) -> dict:
         return {
@@ -76,4 +119,3 @@ def base_repr(number: int, base: int = 10, padding: int = 0) -> str:
     if number < 0:
         res.append("-")
     return "".join(reversed(res or "0"))
-
