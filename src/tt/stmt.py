@@ -7,7 +7,7 @@ Create_tables: Final = """
 CREATE TABLE IF NOT EXISTS metadata
 (
     name    text   NOT NULL UNIQUE,
-    value   text   NOT NULL
+    value   blob   NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS task
@@ -28,3 +28,9 @@ CREATE TABLE IF NOT EXISTS event
 
 CREATE INDEX IF NOT EXISTS idx_event_status ON event(status);
 """
+
+Insert_metadata: Final = (
+    "INSERT INTO metadata (name, value) VALUES (:name, :value);"
+)
+Get_metadata: Final = "SELECT value FROM metadata WHERE name=?;"
+Update_metadata: Final = "UPDATE metadata SET value=:value WHERE name=:name;"

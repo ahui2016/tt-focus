@@ -9,6 +9,8 @@ import msgpack
 DateFormat: Final = "YYYY-MM-DD"
 TimeFormat: Final = "HH:mm:ss"
 
+ConfigName: Final = "meta-config"
+
 
 def now() -> int:
     return arrow.now().int_timestamp
@@ -27,6 +29,12 @@ def rand_id() -> str:
     return base_repr(n_rand, 36)
 
 
+class AppConfig(TypedDict):
+    """最基本的设定，比如数据库文件的位置。"""
+
+    db_path: str
+
+
 class Config(TypedDict):
     split_min: int  # 小于该值自动忽略
     pause_min: int  # 小于该值自动忽略
@@ -34,6 +42,10 @@ class Config(TypedDict):
 
     def pack(self) -> bytes:
         return msgpack.packb(self)
+
+
+def new_cfg_from(data: bytes) -> Config:
+    return msgpack.unpackb(data)
 
 
 class MultiText(TypedDict):
