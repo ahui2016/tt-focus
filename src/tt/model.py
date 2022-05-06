@@ -30,18 +30,26 @@ def rand_id() -> str:
 
 
 class AppConfig(TypedDict):
-    """最基本的设定，比如数据库文件的位置。"""
-
+    """最基本的设定，比如语言、数据库文件的位置。"""
+    lang: str  # 'cn' or 'en'
     db_path: str
 
 
 class Config(TypedDict):
-    split_min: int  # 小于该值自动忽略
-    pause_min: int  # 小于该值自动忽略
-    pause_max: int  # 大于该值自动忽略
+    split_min: int  # 单位：分钟，小于该值自动忽略
+    pause_min: int  # 单位：分钟，小于该值自动忽略
+    pause_max: int  # 单位：分钟，大于该值自动忽略
 
     def pack(self) -> bytes:
         return msgpack.packb(self)
+
+
+def default_cfg() -> Config:
+    return Config(
+        split_min=5,
+        pause_min=5,
+        pause_max=60
+    )
 
 
 def new_cfg_from(data: bytes) -> Config:

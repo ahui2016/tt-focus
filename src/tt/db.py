@@ -5,7 +5,12 @@ from appdirs import AppDirs
 from result import Err, Ok, Result
 from typing import Final, Iterable
 from . import stmt
-from . import model
+from .model import (
+    Config,
+    ConfigName,
+    AppConfig,
+    new_cfg_from,
+)
 
 
 Conn: Final = sqlite3.Connection
@@ -22,19 +27,19 @@ app_cfg_path = app_config_dir.joinpath(AppCfgFilename)
 default_db_path = app_config_dir.joinpath(DB_Filename)
 
 
-def write_cfg_file(cfg: model.AppConfig) -> None:
+def write_cfg_file(cfg: AppConfig) -> None:
     app_cfg_path.write_bytes(msgpack.packb(cfg))
 
 
 def ensure_cfg_file() -> None:
     app_config_dir.mkdir(parents=True, exist_ok=True)
     if not app_cfg_path.exists():
-        default_cfg = model.AppConfig(db_path=default_db_path.__str__())
+        default_cfg = AppConfig(lang='en', db_path=default_db_path.__str__())
         write_cfg_file(default_cfg)
 
 
-def load_app_cfg() -> model.AppConfig:
-    return model.new_cfg_from(app_cfg_path.read_bytes())
+def load_app_cfg() -> AppConfig:
+    return new_cfg_from(app_cfg_path.read_bytes())
 
 
 def connect(db_path: str) -> Conn:
@@ -56,16 +61,16 @@ def connUpdate(
     return Ok(n)
 
 
-def get_cfg(conn: Conn) -> Result[model.Config, str]:
-    row = conn.execute(stmt.Get_metadata, (model.ConfigName,)).fetchone()
+def get_cfg(conn: Conn) -> Result[Config, str]:
+    row = conn.execute(stmt.Get_metadata, (ConfigName,)).fetchone()
     if row is None:
         return Err(NoResultError)
-    return Ok(model.new_cfg_from(row[0]))
+    return Ok(new_cfg_from(row[0]))
 
 
-def update_cfg(conn: Conn, cfg: model.Config) -> None:
+def update_cfg(conn: Conn, cfg: Config) -> None:
     connUpdate(
         conn,
         stmt.Update_metadata,
-        {"name": model.ConfigName, "value": cfg.pack()},
+        {"name": ConfigName, "value": cfg.pack()},
     ).unwrap()
