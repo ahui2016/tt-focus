@@ -1,9 +1,10 @@
 import click
 import sqlite3
-from typing import Final
+from typing import Final, Callable
 
 from . import (
     db,
+    util,
     __version__,
     __package_name__,
 )
@@ -17,10 +18,30 @@ lang: Final = app_cfg["lang"]
 
 
 def connect() -> sqlite3.Connection:
-    return db.connect(app_cfg["db_path"])
+    return db.connect(db_path)
 
+
+def execute(func: Callable, *args):
+    with connect() as conn:
+        return func(conn, *args)
+
+
+config = execute(db.get_cfg).unwrap()
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+def set_lang(ctx, _, value):
+    if not value or ctx.resilient_parsing:
+        return
+    app_cfg["lang"] = value
+    db.write_cfg_file(app_cfg)
+    msg = MultiText(
+        cn=f" [语言] {app_cfg['lang']} (中文)",
+        en=f" [language] {app_cfg['lang']}"
+    )
+    print(msg[value])
+    ctx.exit()
 
 
 def set_db_path(ctx, _, value):
@@ -34,11 +55,21 @@ def set_db_path(ctx, _, value):
 def show_info(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
+    print()
+    print(f" [tt-focus] {__file__}")
+    print(f"  [version] {__version__}")
+    with connect() as conn:
+        util.show_cfg(conn, app_cfg, config)
+    ctx.exit()
 
 
 help_set_db_folder = MultiText(
     cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
-    en="Specify a folder for the database (tt-focus.db)."
+    en="Specify a folder for the database (tt-focus.db).",
+)
+help_info = MultiText(
+    cn="显示关于本软件的一些有用信息。",
+    en="Show informations about tt-focus."
 )
 
 
@@ -53,10 +84,25 @@ help_set_db_folder = MultiText(
     message="%(prog)s version: %(version)s",
 )
 @click.option(
+    "-i",
+    "--info",
+    is_flag=True,
+    help=help_info[lang],
+    expose_value=False,
+    callback=show_info,
+)
+@click.option(
+    "--set-lang",
+    help="Set language (语言). cn: 中文, en: English",
+    type=click.Choice(["cn", "en"]),
+    expose_value=False,
+    callback=set_lang,
+)
+@click.option(
     "--set-db-folder",
     help=help_set_db_folder[lang],
     expose_value=False,
-    callback=set_db_path
+    callback=set_db_path,
 )
 @click.pass_context
 def cli(ctx: click.Context):

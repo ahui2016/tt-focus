@@ -5,11 +5,11 @@ from appdirs import AppDirs
 from result import Err, Ok, Result
 from typing import Final, Iterable
 from . import stmt
+from . import model
 from .model import (
     Config,
     ConfigName,
     AppConfig,
-    new_cfg_from,
 )
 
 
@@ -31,15 +31,8 @@ def write_cfg_file(cfg: AppConfig) -> None:
     app_cfg_path.write_bytes(msgpack.packb(cfg))
 
 
-def ensure_cfg_file() -> None:
-    app_config_dir.mkdir(parents=True, exist_ok=True)
-    if not app_cfg_path.exists():
-        default_cfg = AppConfig(lang='en', db_path=default_db_path.__str__())
-        write_cfg_file(default_cfg)
-
-
 def load_app_cfg() -> AppConfig:
-    return new_cfg_from(app_cfg_path.read_bytes())
+    return model.unpack(app_cfg_path.read_bytes())
 
 
 def connect(db_path: str) -> Conn:
@@ -61,11 +54,25 @@ def connUpdate(
     return Ok(n)
 
 
+def ensure_cfg_file() -> None:
+    app_config_dir.mkdir(parents=True, exist_ok=True)
+    if not app_cfg_path.exists():
+        default_cfg = AppConfig(lang="en", db_path=default_db_path.__str__())
+        write_cfg_file(default_cfg)
+
+    app_cfg = load_app_cfg()
+    db_path = Path(app_cfg['db_path'])
+    if not db_path.exists():
+        with connect(db_path) as conn:
+            conn.executescript(stmt.Create_tables)
+            init_cfg(conn)
+
+
 def get_cfg(conn: Conn) -> Result[Config, str]:
     row = conn.execute(stmt.Get_metadata, (ConfigName,)).fetchone()
     if row is None:
         return Err(NoResultError)
-    return Ok(new_cfg_from(row[0]))
+    return Ok(model.unpack(row[0]))
 
 
 def update_cfg(conn: Conn, cfg: Config) -> None:
@@ -74,3 +81,12 @@ def update_cfg(conn: Conn, cfg: Config) -> None:
         stmt.Update_metadata,
         {"name": ConfigName, "value": cfg.pack()},
     ).unwrap()
+
+
+def init_cfg(conn: Conn):
+    if get_cfg(conn).is_err():
+        connUpdate(
+            conn,
+            stmt.Insert_metadata,
+            {"name": ConfigName, "value": model.pack(model.default_cfg())}
+        ).unwrap()

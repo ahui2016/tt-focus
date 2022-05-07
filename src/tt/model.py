@@ -31,6 +31,7 @@ def rand_id() -> str:
 
 class AppConfig(TypedDict):
     """最基本的设定，比如语言、数据库文件的位置。"""
+
     lang: str  # 'cn' or 'en'
     db_path: str
 
@@ -40,20 +41,17 @@ class Config(TypedDict):
     pause_min: int  # 单位：分钟，小于该值自动忽略
     pause_max: int  # 单位：分钟，大于该值自动忽略
 
-    def pack(self) -> bytes:
-        return msgpack.packb(self)
-
 
 def default_cfg() -> Config:
-    return Config(
-        split_min=5,
-        pause_min=5,
-        pause_max=60
-    )
+    return Config(split_min=5, pause_min=5, pause_max=60)
 
 
-def new_cfg_from(data: bytes) -> Config:
-    return msgpack.unpackb(data)
+def pack(obj) -> bytes:
+    return msgpack.packb(obj)
+
+
+def unpack(data: bytes):
+    return msgpack.unpackb(data, use_list=False)
 
 
 class MultiText(TypedDict):
@@ -103,9 +101,7 @@ class Event:
         self.status = EventStatus[status]
         lap = (LapName.Split.name, now(), 0, 0)
         self.laps = (
-            msgpack.unpackb(d["laps"], use_list=False)
-            if d.get("laps", False)
-            else (lap,)
+            unpack(d["laps"]) if d.get("laps", False) else (lap,)
         )
         self.work = d.get("work", 0)
 
@@ -113,7 +109,7 @@ class Event:
         return {
             "id": self.id,
             "status": self.status.name,
-            "laps": msgpack.packb(self.laps, use_list=False),
+            "laps": pack(self.laps),
             "work": 0,
         }
 

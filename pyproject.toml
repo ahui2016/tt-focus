@@ -18,6 +18,9 @@ dependencies = [
 requires-python = ">=3.10"
 dynamic = ["version", "description"]
 
+[tool.flit.module]
+name = "tt"
+
 [project.urls]
 Home = "https://github.com/ahui2016/tt-focus"
 
