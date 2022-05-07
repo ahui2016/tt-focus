@@ -100,9 +100,7 @@ class Event:
         status = d.get("status", "Running")
         self.status = EventStatus[status]
         lap = (LapName.Split.name, now(), 0, 0)
-        self.laps = (
-            unpack(d["laps"]) if d.get("laps", False) else (lap,)
-        )
+        self.laps = unpack(d["laps"]) if d.get("laps", False) else (lap,)
         self.work = d.get("work", 0)
 
     def to_dict(self) -> dict:

@@ -36,10 +36,7 @@ def set_lang(ctx, _, value):
         return
     app_cfg["lang"] = value
     db.write_cfg_file(app_cfg)
-    msg = MultiText(
-        cn=f" [语言] {app_cfg['lang']} (中文)",
-        en=f" [language] {app_cfg['lang']}"
-    )
+    msg = MultiText(cn=" [语言] cn (中文)", en=" [language] en")
     print(msg[value])
     ctx.exit()
 
@@ -68,8 +65,7 @@ help_set_db_folder = MultiText(
     en="Specify a folder for the database (tt-focus.db).",
 )
 help_info = MultiText(
-    cn="显示关于本软件的一些有用信息。",
-    en="Show informations about tt-focus."
+    cn="显示关于本软件的一些有用信息。", en="Show informations about tt-focus."
 )
 
 
@@ -93,7 +89,7 @@ help_info = MultiText(
 )
 @click.option(
     "--set-lang",
-    help="Set language (语言). cn: 中文, en: English",
+    help="Set language (语言) -> cn: 中文, en: English",
     type=click.Choice(["cn", "en"]),
     expose_value=False,
     callback=set_lang,

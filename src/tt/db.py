@@ -61,7 +61,7 @@ def ensure_cfg_file() -> None:
         write_cfg_file(default_cfg)
 
     app_cfg = load_app_cfg()
-    db_path = Path(app_cfg['db_path'])
+    db_path = Path(app_cfg["db_path"])
     if not db_path.exists():
         with connect(db_path) as conn:
             conn.executescript(stmt.Create_tables)
@@ -88,5 +88,5 @@ def init_cfg(conn: Conn):
         connUpdate(
             conn,
             stmt.Insert_metadata,
-            {"name": ConfigName, "value": model.pack(model.default_cfg())}
+            {"name": ConfigName, "value": model.pack(model.default_cfg())},
         ).unwrap()
