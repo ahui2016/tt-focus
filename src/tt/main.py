@@ -31,16 +31,6 @@ config = execute(db.get_cfg).unwrap()
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-def set_lang(ctx, _, value):
-    if not value or ctx.resilient_parsing:
-        return
-    app_cfg["lang"] = value
-    db.write_cfg_file(app_cfg)
-    msg = MultiText(cn=" [语言] cn (中文)", en=" [language] en")
-    print(msg[value])
-    ctx.exit()
-
-
 def set_db_path(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
@@ -88,13 +78,6 @@ help_info = MultiText(
     callback=show_info,
 )
 @click.option(
-    "--set-lang",
-    help="Set language (语言) -> cn: 中文, en: English",
-    type=click.Choice(["cn", "en"]),
-    expose_value=False,
-    callback=set_lang,
-)
-@click.option(
     "--set-db-folder",
     help=help_set_db_folder[lang],
     expose_value=False,
@@ -116,3 +99,24 @@ def cli(ctx: click.Context):
 # 以上是主命令
 ############
 # 以下是子命令
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "lang",
+    "-lang",
+    help="Set language (语言) -> cn: 中文, en: English",
+    type=click.Choice(["cn", "en"]),
+)
+@click.pass_context
+def set(ctx, lang: str):
+    """Change settings of tt-focus, or properties of a task/event.
+
+    更改 tt-focus 的设置，或更改任务/事件的属性。
+    """
+    if lang:
+        app_cfg["lang"] = lang
+        db.write_cfg_file(app_cfg)
+        msg = MultiText(cn=" [语言] cn (中文)", en=" [language] en")
+        print(msg[lang])
+        ctx.exit()
