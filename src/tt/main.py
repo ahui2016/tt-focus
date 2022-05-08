@@ -1,6 +1,9 @@
+import os
 import click
 import sqlite3
 from typing import Final, Callable
+from pathlib import Path
+import shutil
 
 from . import (
     db,
@@ -31,14 +34,6 @@ config = execute(db.get_cfg).unwrap()
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-def set_db_path(ctx, _, value):
-    if not value or ctx.resilient_parsing:
-        return
-    app_cfg["db_path"] = value
-    db.write_cfg_file(app_cfg)
-    ctx.exit()
-
-
 def show_info(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
@@ -50,10 +45,6 @@ def show_info(ctx, _, value):
     ctx.exit()
 
 
-help_set_db_folder = MultiText(
-    cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
-    en="Specify a folder for the database (tt-focus.db).",
-)
 help_info = MultiText(
     cn="显示关于本软件的一些有用信息。", en="Show informations about tt-focus."
 )
@@ -77,12 +68,6 @@ help_info = MultiText(
     expose_value=False,
     callback=show_info,
 )
-@click.option(
-    "--set-db-folder",
-    help=help_set_db_folder[lang],
-    expose_value=False,
-    callback=set_db_path,
-)
 @click.pass_context
 def cli(ctx: click.Context):
     """tt-focus: command-line Time Tracker.
@@ -101,6 +86,53 @@ def cli(ctx: click.Context):
 # 以下是子命令
 
 
+help_set_db_folder = MultiText(
+    cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
+    en="Specify a folder for the database (tt-focus.db).",
+)
+
+
+def update_db_path(new_db_path, success):
+    app_cfg["db_path"] = new_db_path.resolve().__str__()
+    db.write_cfg_file(app_cfg)
+    print(success[lang])
+
+
+def change_db_path(db_folder, new_db_path):
+    success = MultiText(
+        cn=f"数据库文件已更改为 {new_db_path}\n注意，旧数据库未删除: {db_path}",
+        en=f"Now using file {new_db_path}\nThe old database remains: {db_path}"
+    )
+    update_db_path(new_db_path, success)
+
+
+def move_db_file(new_db_path):
+    success = MultiText(
+        cn=f"数据库文件已移动到 {new_db_path}",
+        en=f"The database file is moved to {new_db_path}"
+    )
+    shutil.copyfile(db_path, new_db_path)
+    os.remove(db_path)
+    update_db_path(new_db_path, success)
+
+
+def set_db_folder(db_folder):
+    new_db_path = Path(db_folder).joinpath(db.DB_Filename)
+
+    if new_db_path.exists():
+        # 无变化
+        if new_db_path.samefile(db_path):
+            print(f"[database]: {db_path}")
+            return
+
+        # 新文件夹含有 tt-focus.db, 则认为这是新数据库文件。
+        change_db_path(db_folder, new_db_path)
+        return
+
+    # 新文件夹中没有 tt-focus.db, 则移动 tt-focus.db 到新文件夹。
+    move_db_file(new_db_path)
+
+
 @cli.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
     "lang",
@@ -108,8 +140,15 @@ def cli(ctx: click.Context):
     help="Set language (语言) -> cn: 中文, en: English",
     type=click.Choice(["cn", "en"]),
 )
+@click.option(
+    "db_folder",
+    "-db",
+    "--db-folder",
+    type=click.Path(exists=True, file_okay=False),
+    help=help_set_db_folder[lang],
+)
 @click.pass_context
-def set(ctx, lang: str):
+def set(ctx, lang, db_folder):
     """Change settings of tt-focus, or properties of a task/event.
 
     更改 tt-focus 的设置，或更改任务/事件的属性。
@@ -119,4 +158,8 @@ def set(ctx, lang: str):
         db.write_cfg_file(app_cfg)
         msg = MultiText(cn=" [语言] cn (中文)", en=" [language] en")
         print(msg[lang])
+        ctx.exit()
+
+    if db_folder:
+        set_db_folder(db_folder)
         ctx.exit()

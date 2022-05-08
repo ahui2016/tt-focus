@@ -1,4 +1,3 @@
-import arrow
 import sqlite3
 from . import db
 from .model import (
