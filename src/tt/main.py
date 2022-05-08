@@ -133,7 +133,13 @@ def set_db_folder(db_folder):
     move_db_file(new_db_path)
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS)
+short_help = MultiText(
+    cn="更改 tt-focus 的设置，或更改任务/事件的属性。",
+    en="Change settings of tt-focus, or properties of a task/event."
+)
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS, short_help=short_help[lang])
 @click.option(
     "lang",
     "-lang",
