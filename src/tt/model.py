@@ -106,6 +106,7 @@ class Event:
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "task_id": self.task_id,
             "status": self.status.name,
             "laps": pack(self.laps),
             "work": 0,

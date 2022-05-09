@@ -101,7 +101,7 @@ def update_db_path(new_db_path, success):
 def change_db_path(db_folder, new_db_path):
     success = MultiText(
         cn=f"数据库文件已更改为 {new_db_path}\n注意，旧数据库未删除: {db_path}",
-        en=f"Now using file {new_db_path}\nThe old database remains: {db_path}"
+        en=f"Now using file {new_db_path}\nThe old database remains: {db_path}",
     )
     update_db_path(new_db_path, success)
 
@@ -109,7 +109,7 @@ def change_db_path(db_folder, new_db_path):
 def move_db_file(new_db_path):
     success = MultiText(
         cn=f"数据库文件已移动到 {new_db_path}",
-        en=f"The database file is moved to {new_db_path}"
+        en=f"The database file is moved to {new_db_path}",
     )
     shutil.copyfile(db_path, new_db_path)
     os.remove(db_path)
@@ -133,13 +133,13 @@ def set_db_folder(db_folder):
     move_db_file(new_db_path)
 
 
-short_help = MultiText(
+help_text = MultiText(
     cn="更改 tt-focus 的设置，或更改任务/事件的属性。",
-    en="Change settings of tt-focus, or properties of a task/event."
+    en="Change settings of tt-focus, or properties of a task/event.",
 )
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, short_help=short_help[lang])
+@cli.command(context_settings=CONTEXT_SETTINGS, help=help_text[lang])
 @click.option(
     "lang",
     "-lang",
