@@ -79,7 +79,7 @@ def update_cfg(conn: Conn, cfg: Config) -> None:
     connUpdate(
         conn,
         stmt.Update_metadata,
-        {"name": ConfigName, "value": cfg.pack()},
+        {"name": ConfigName, "value": model.pack(cfg)},
     ).unwrap()
 
 
