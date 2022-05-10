@@ -1,15 +1,22 @@
+import re
 import arrow
 from typing import Final, TypedDict
+from result import Err, Ok, Result
 from dataclasses import dataclass
 from enum import Enum, auto
 from random import randrange
 import msgpack
 
 
+OK: Final = Ok("OK")
+
 DateFormat: Final = "YYYY-MM-DD"
 TimeFormat: Final = "HH:mm:ss"
 
 ConfigName: Final = "meta-config"
+
+NameForbidPattern: Final = re.compile(r"[^_0-9a-zA-Z\-]")
+"""只允许使用 -, _, 0-9, a-z, A-Z"""
 
 
 def now() -> int:
@@ -74,16 +81,36 @@ Lap = tuple[str, int, int, int]
 """(name, start, end, length) : (LapName, timestamp, timestamp, seconds)"""
 
 
+def check_name(id: str) -> Result[str, MultiText]:
+    if NameForbidPattern.search(id) is None:
+        return OK
+    else:
+        err = MultiText(
+            cn="名称只允许由 0-9a-zA-Z 以及下划线、短横线组成",
+            en="The name may only contain -, _, 0-9, a-z, A-Z",
+        )
+        return Err(err)
+
+
 @dataclass
 class Task:
+    """请勿直接使用 Task(), 请使用 NewTask(dict)"""
+
     id: str  # rand_id
     name: str
     alias: str
 
-    def __init__(self, d: dict) -> None:
-        self.id = d.get("id", rand_id())
-        self.name = d["name"]
-        self.alias = d.get("alias", "")
+
+def NewTask(d: dict) -> Result[Task, MultiText]:
+    id = d.get("id", rand_id())
+    name = d["name"]
+    alias = d.get("alias", "")
+    task = Task(id=id, name=name, alias=alias)
+    match check_name(name):
+        case Ok():
+            return Ok(task)
+        case Err(err):
+            return Err(err)
 
 
 @dataclass

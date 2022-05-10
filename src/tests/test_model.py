@@ -1,6 +1,6 @@
 import pytest
 from tt import model
-from tt.model import Task, Event, EventStatus, LapName
+from tt.model import NewTask, Event, EventStatus, LapName
 
 
 def test_date_id():
@@ -25,19 +25,22 @@ def test_default_cfg():
 
 class TestTask:
     def test_init_without_name(self):
-        with pytest.raises(KeyError) as err:
-            Task({"_": "_"})
-            err == "name"
+        # https://docs.pytest.org/en/6.2.x/assert.html#assertions-about-expected-exceptions
+        with pytest.raises(KeyError, match=r"'name'"):
+            NewTask({"_": "_"})
 
     def test_init_without_id(self):
-        a = Task({"name": "aaa"})
-        b = Task({"name": "bbb"})
+        a = NewTask({"name": "aaa"}).unwrap()
+        b = NewTask({"name": "bbb"}).unwrap()
         assert_rand_id(a.id, b.id)
         assert a.alias + b.alias == ""
 
+    def test_init_with_wrong_name(self):
+        assert NewTask({"name": "a+b"}).is_err()
+
     def test_init(self):
         a = {"id": model.rand_id(), "name": "aaa", "alias": "bbb"}
-        b = Task(a)
+        b = NewTask(a).unwrap()
         assert (
             b.id == a["id"] and b.name == a["name"] and b.alias == a["alias"]
         )
@@ -46,7 +49,7 @@ class TestTask:
 class TestEvent:
     def test_init_without_id(self):
         start = model.now()
-        a = Task({"name": "aaa"})
+        a = NewTask({"name": "aaa"}).unwrap()
         b = Event({"task_id": a.id})
         assert len(b.id) >= 6
         assert b.task_id == a.id
@@ -59,7 +62,7 @@ class TestEvent:
         assert b.work == 0
 
     def test_init(self):
-        a = Task({"name": "aaa"})
+        a = NewTask({"name": "aaa"}).unwrap()
         b = Event({"task_id": a.id})
         c = b.to_dict()
         assert b.id == c["id"]

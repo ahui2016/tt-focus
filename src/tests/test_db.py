@@ -4,7 +4,7 @@ from tt import model
 from tt import db
 
 
-cfg_keys = ('split_min', 'pause_min', 'pause_max')
+cfg_keys = ("split_min", "pause_min", "pause_max")
 
 
 def assert_cfg(cfg):
