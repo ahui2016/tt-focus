@@ -9,7 +9,7 @@ cfg_keys = ("split_min", "pause_min", "pause_max")
 
 def assert_cfg(cfg):
     for key in cfg_keys:
-        cfg[key] > 0
+        assert cfg[key] > 0
 
 
 def assert_equal_cfg(a, b):
@@ -21,7 +21,7 @@ def assert_equal_cfg(a, b):
 def temp_db_conn(tmp_path):
     temp_db_path = tmp_path.joinpath(db.DB_Filename)
     print(temp_db_path)
-    with db.connect(temp_db_path) as conn:
+    with db.connect(str(temp_db_path)) as conn:
         conn.executescript(stmt.Create_tables)
         db.init_cfg(conn)
         yield conn

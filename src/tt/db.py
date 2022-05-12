@@ -42,7 +42,7 @@ def connect(db_path: str) -> Conn:
     return conn
 
 
-def connUpdate(
+def conn_update(
     conn: Conn, query: str, param: Iterable, many: bool = False
 ) -> Result[int, str]:
     if many:
@@ -63,7 +63,7 @@ def ensure_cfg_file() -> None:
     app_cfg = load_app_cfg()
     db_path = Path(app_cfg["db_path"])
     if not db_path.exists():
-        with connect(db_path) as conn:
+        with connect(str(db_path)) as conn:
             conn.executescript(stmt.Create_tables)
             init_cfg(conn)
 
@@ -76,7 +76,7 @@ def get_cfg(conn: Conn) -> Result[Config, str]:
 
 
 def update_cfg(conn: Conn, cfg: Config) -> None:
-    connUpdate(
+    conn_update(
         conn,
         stmt.Update_metadata,
         {"name": ConfigName, "value": model.pack(cfg)},
@@ -85,7 +85,7 @@ def update_cfg(conn: Conn, cfg: Config) -> None:
 
 def init_cfg(conn: Conn):
     if get_cfg(conn).is_err():
-        connUpdate(
+        conn_update(
             conn,
             stmt.Insert_metadata,
             {"name": ConfigName, "value": model.pack(model.default_cfg())},

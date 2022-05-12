@@ -81,8 +81,8 @@ Lap = tuple[str, int, int, int]
 """(name, start, end, length) : (LapName, timestamp, timestamp, seconds)"""
 
 
-def check_name(id: str) -> Result[str, MultiText]:
-    if NameForbidPattern.search(id) is None:
+def check_name(name: str) -> Result[str, MultiText]:
+    if NameForbidPattern.search(name) is None:
         return OK
     else:
         err = MultiText(
@@ -101,11 +101,11 @@ class Task:
     alias: str
 
 
-def NewTask(d: dict) -> Result[Task, MultiText]:
-    id = d.get("id", rand_id())
+def new_task(d: dict) -> Result[Task, MultiText]:
+    t_id = d.get("id", rand_id())
     name = d["name"]
     alias = d.get("alias", "")
-    task = Task(id=id, name=name, alias=alias)
+    task = Task(id=t_id, name=name, alias=alias)
     match check_name(name):
         case Ok():
             return Ok(task)

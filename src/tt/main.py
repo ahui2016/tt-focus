@@ -46,7 +46,7 @@ def show_info(ctx, _, value):
 
 
 help_info = MultiText(
-    cn="显示关于本软件的一些有用信息。", en="Show informations about tt-focus."
+    cn="显示关于本软件的一些有用信息。", en="Show information about tt-focus."
 )
 
 
@@ -64,7 +64,7 @@ help_info = MultiText(
     "-i",
     "--info",
     is_flag=True,
-    help=help_info[lang],
+    help=help_info[lang],  # type: ignore
     expose_value=False,
     callback=show_info,
 )
@@ -98,10 +98,11 @@ def update_db_path(new_db_path, success):
     print(success[lang])
 
 
-def change_db_path(db_folder, new_db_path):
+def change_db_path(new_db_path):
     success = MultiText(
         cn=f"数据库文件已更改为 {new_db_path}\n注意，旧数据库未删除: {db_path}",
-        en=f"Now using file {new_db_path}\nThe old database remains: {db_path}",
+        en=f"Now using file {new_db_path}\n"
+        + f"The old database remains: {db_path}",
     )
     update_db_path(new_db_path, success)
 
@@ -126,7 +127,7 @@ def set_db_folder(db_folder):
             return
 
         # 新文件夹含有 tt-focus.db, 则认为这是新数据库文件。
-        change_db_path(db_folder, new_db_path)
+        change_db_path(new_db_path)
         return
 
     # 新文件夹中没有 tt-focus.db, 则移动 tt-focus.db 到新文件夹。
@@ -139,9 +140,9 @@ help_text = MultiText(
 )
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, help=help_text[lang])
+@cli.command(context_settings=CONTEXT_SETTINGS, help=help_text[lang], name="set")  # type: ignore
 @click.option(
-    "lang",
+    "language",
     "-lang",
     help="Set language (语言) -> cn: 中文, en: English",
     type=click.Choice(["cn", "en"]),
@@ -151,19 +152,19 @@ help_text = MultiText(
     "-db",
     "--db-folder",
     type=click.Path(exists=True, file_okay=False),
-    help=help_set_db_folder[lang],
+    help=help_set_db_folder[lang],  # type: ignore
 )
 @click.pass_context
-def set(ctx, lang, db_folder):
+def set_command(ctx, language, db_folder):
     """Change settings of tt-focus, or properties of a task/event.
 
     更改 tt-focus 的设置，或更改任务/事件的属性。
     """
-    if lang:
-        app_cfg["lang"] = lang
+    if language:
+        app_cfg["lang"] = language
         db.write_cfg_file(app_cfg)
         msg = MultiText(cn=" [语言] cn (中文)", en=" [language] en")
-        print(msg[lang])
+        print(msg[language])  # type: ignore
         ctx.exit()
 
     if db_folder:
