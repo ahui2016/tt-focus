@@ -1,7 +1,7 @@
 import pytest
-from tt import stmt
-from tt import model
-from tt import db
+from .. import stmt
+from .. import model
+from .. import db
 
 
 cfg_keys = ("split_min", "pause_min", "pause_max")

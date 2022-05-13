@@ -1,4 +1,5 @@
 import sqlite3
+from dataclasses import asdict
 import msgpack
 from pathlib import Path
 from appdirs import AppDirs
@@ -6,11 +7,7 @@ from result import Err, Ok, Result
 from typing import Final, Iterable
 from . import stmt
 from . import model
-from .model import (
-    Config,
-    ConfigName,
-    AppConfig,
-)
+from .model import Config, ConfigName, AppConfig, Task
 
 
 Conn: Final = sqlite3.Connection
@@ -83,10 +80,14 @@ def update_cfg(conn: Conn, cfg: Config) -> None:
     ).unwrap()
 
 
-def init_cfg(conn: Conn):
+def init_cfg(conn: Conn) -> None:
     if get_cfg(conn).is_err():
         conn_update(
             conn,
             stmt.Insert_metadata,
             {"name": ConfigName, "value": model.pack(model.default_cfg())},
         ).unwrap()
+
+
+def insert_task(conn: Conn, task: Task) -> None:
+    conn_update(conn, stmt.Insert_task, asdict(task)).unwrap()

@@ -92,13 +92,13 @@ help_set_db_folder = MultiText(
 )
 
 
-def update_db_path(new_db_path, success):
+def update_db_path(new_db_path: Path, success: MultiText):
     app_cfg["db_path"] = new_db_path.resolve().__str__()
     db.write_cfg_file(app_cfg)
-    print(success[lang])
+    print(success[lang])  # type: ignore
 
 
-def change_db_path(new_db_path):
+def change_db_path(new_db_path: Path):
     success = MultiText(
         cn=f"数据库文件已更改为 {new_db_path}\n注意，旧数据库未删除: {db_path}",
         en=f"Now using file {new_db_path}\n"
@@ -107,7 +107,7 @@ def change_db_path(new_db_path):
     update_db_path(new_db_path, success)
 
 
-def move_db_file(new_db_path):
+def move_db_file(new_db_path: Path):
     success = MultiText(
         cn=f"数据库文件已移动到 {new_db_path}",
         en=f"The database file is moved to {new_db_path}",
@@ -117,7 +117,7 @@ def move_db_file(new_db_path):
     update_db_path(new_db_path, success)
 
 
-def set_db_folder(db_folder):
+def set_db_folder(db_folder: str):
     new_db_path = Path(db_folder).joinpath(db.DB_Filename)
 
     if new_db_path.exists():
@@ -155,7 +155,7 @@ help_text = MultiText(
     help=help_set_db_folder[lang],  # type: ignore
 )
 @click.pass_context
-def set_command(ctx, language, db_folder):
+def set_command(ctx: click.Context, language: str, db_folder: str):
     """Change settings of tt-focus, or properties of a task/event.
 
     更改 tt-focus 的设置，或更改任务/事件的属性。

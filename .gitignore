@@ -1,4 +1,4 @@
 env
 src/tt/__pycache__/
-src/tests/__pycache__/
+src/tt/test/__pycache__/
 .idea

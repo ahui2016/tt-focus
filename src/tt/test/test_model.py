@@ -1,6 +1,6 @@
 import pytest
-from tt import model
-from tt.model import Event, EventStatus, LapName
+from .. import model
+from ..model import Event, EventStatus, LapName
 
 
 def test_date_id():

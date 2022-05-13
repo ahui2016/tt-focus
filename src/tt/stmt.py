@@ -29,8 +29,12 @@ CREATE TABLE IF NOT EXISTS event
 CREATE INDEX IF NOT EXISTS idx_event_status ON event(status);
 """
 
-Insert_metadata: Final = (
-    "INSERT INTO metadata (name, value) VALUES (:name, :value);"
-)
+Insert_metadata: Final = """
+    INSERT INTO metadata (name, value) VALUES (:name, :value);
+"""
 Get_metadata: Final = "SELECT value FROM metadata WHERE name=?;"
 Update_metadata: Final = "UPDATE metadata SET value=:value WHERE name=:name;"
+
+Insert_task: Final = """
+    INSERT INTO task (id, name, alias) VALUES (:id, :name, :alias);
+"""
