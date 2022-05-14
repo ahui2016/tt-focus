@@ -58,11 +58,12 @@ class TestEvent:
         b = Event({"task_id": a.id})
         assert len(b.id) >= 6
         assert b.task_id == a.id
+        assert b.started - start < 2  # 允许有一秒误差
         assert b.status is EventStatus.Running
         assert len(b.laps) == 1
         lap = b.laps[0]
         assert lap[0] == LapName.Split.name
-        assert lap[1] - start < 2  # 允许有一秒误差
+        assert lap[1] == b.started
         assert lap[2] + lap[3] == 0
         assert b.work == 0
 
@@ -70,8 +71,10 @@ class TestEvent:
         a = model.new_task({"name": "aaa"}).unwrap()
         b = Event({"task_id": a.id})
         c = b.to_dict()
+        assert len(c.keys()) == 6
         assert b.id == c["id"]
         assert b.task_id == c["task_id"]
+        assert b.started == c["started"]
         assert b.status.name == c["status"]
         laps = model.unpack(c["laps"])
         assert b.laps == laps

@@ -13,6 +13,7 @@ from .model import (
     AppConfig,
     Task,
     MultiText,
+    Event,
 )
 
 Conn: TypeAlias = sqlite3.Connection
@@ -52,7 +53,7 @@ def conn_update(
     else:
         n = conn.execute(query, param).rowcount
     if n <= 0:
-        return Err("sqlite row affected = 0")
+        return Err("Error: sqlite row affected = 0")
     return Ok(n)
 
 
@@ -103,6 +104,11 @@ def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
     return Ok(task)
 
 
+def get_task_id(conn: Conn, name: str) -> str:
+    task = get_task_by_name(conn, name).unwrap()
+    return task.id
+
+
 def insert_task(conn: Conn, task: Task) -> Result[str, MultiText]:
     old_task = get_task_by_name(conn, task.name).ok()
     if old_task is None:
@@ -110,7 +116,18 @@ def insert_task(conn: Conn, task: Task) -> Result[str, MultiText]:
         return OK
 
     err = MultiText(
-        cn=f"任务类型已存在: {old_task}",
-        en=f"Task type exists: {old_task}",
+        cn=f"出错: 任务类型已存在: {old_task}",
+        en=f"Error: Task type exists: {old_task}",
     )
     return Err(err)
+
+
+def get_all_task(conn: Conn) -> list[Task]:
+    rows = conn.execute(stmt.Get_all_tasks).fetchall()
+    return [model.new_task(dict(row)).unwrap() for row in rows]
+
+
+def insert_event(conn: Conn, name: str) -> None:
+    task_id = get_task_id(conn, name)
+    event = Event({"task_id": task_id})
+    conn_update(conn, stmt.Insert_event, asdict(event)).unwrap()

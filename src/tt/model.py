@@ -87,8 +87,8 @@ def check_name(name: str) -> Result[str, MultiText]:
         return OK
     else:
         err = MultiText(
-            cn="名称只允许由 0-9a-zA-Z 以及下划线、短横线组成",
-            en="The name may only contain -, _, 0-9, a-z, A-Z",
+            cn="出错: 名称只允许由 0-9, a-z, A-Z 以及下划线、短横线组成",
+            en="Error: The name may only contain -, _, 0-9, a-z, A-Z",
         )
         return Err(err)
 
@@ -123,6 +123,7 @@ def new_task(d: dict) -> Result[Task, MultiText]:
 class Event:
     id: str  # date_id
     task_id: str
+    started: int  # timestamp
     status: EventStatus  # 状态
     laps: tuple[Lap]  # 过程
     work: int  # 有效工作时间合计：秒
@@ -130,9 +131,10 @@ class Event:
     def __init__(self, d: dict) -> None:
         self.id = d.get("id", date_id())
         self.task_id = d["task_id"]
+        self.started = now()
         status = d.get("status", "Running")
         self.status = EventStatus[status]
-        lap = (LapName.Split.name, now(), 0, 0)
+        lap = (LapName.Split.name, self.started, 0, 0)
         self.laps = unpack(d["laps"]) if d.get("laps", False) else (lap,)
         self.work = d.get("work", 0)
 
@@ -140,6 +142,7 @@ class Event:
         return {
             "id": self.id,
             "task_id": self.task_id,
+            "started": self.started,
             "status": self.status.name,
             "laps": pack(self.laps),
             "work": 0,

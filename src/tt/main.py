@@ -197,7 +197,11 @@ help_add_alias = MultiText(
 )
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, short_help=short_help[lang], help=help_text[lang])  # type: ignore
+@cli.command(
+    context_settings=CONTEXT_SETTINGS,
+    short_help=short_help[lang],  # type: ignore
+    help=help_text[lang],  # type: ignore
+)
 @click.argument("name")
 @click.option(
     "alias",
@@ -220,3 +224,32 @@ def add(ctx: click.Context, name: str, alias: str):
                     case Ok():
                         print(f"Task added: {task}")
     ctx.exit()
+
+
+short_help = MultiText(cn="任务列表或事件列表。", en="List out task or events.")
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help[lang], name="list"  # type: ignore
+)
+@click.pass_context
+def list_command(ctx: click.Context):
+    """List out task or events. 任务列表或事件列表。"""
+    with connect() as conn:
+        tasks = db.get_all_task(conn)
+        util.show_tasks(tasks, lang)
+
+
+short_help = MultiText(
+    cn="启动一个事件（开始做任务）。", en="Start an event (to do a task)."
+)
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS, short_help=short_help[lang])  # type: ignore
+@click.argument("name", required=False)
+@click.pass_context
+def start(ctx: click.Context, name: str):
+    """List out task or events. 任务列表或事件列表。"""
+    with connect() as conn:
+        tasks = db.get_all_task(conn)
+        util.show_tasks(tasks, lang)

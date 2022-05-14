@@ -21,12 +21,14 @@ CREATE TABLE IF NOT EXISTS event
 (
     id        text   PRIMARY KEY COLLATE NOCASE,
     task_id   text   REFERENCES task(id) COLLATE NOCASE,
+    started   int    NOT NULL,
     status    text   NOT NULL COLLATE NOCASE,
     laps      blob   NOT NULL,
     work      int    NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_status ON event(status);
+CREATE INDEX IF NOT EXISTS idx_event_task_id ON event(task_id);
+CREATE INDEX IF NOT EXISTS idx_event_started ON event(started);
 """
 
 Insert_metadata: Final = """
@@ -41,4 +43,17 @@ Get_task_by_name: Final = """
 
 Insert_task: Final = """
     INSERT INTO task (id, name, alias) VALUES (:id, :name, :alias);
+"""
+
+Get_all_tasks: Final = """
+    SELECT * FROM task ORDER BY name;
+"""
+
+Insert_event: Final = """
+    INSERT INTO event (id, task_id, started, status, laps, work)
+    VALUES (:id, :task_id, :started, :status, :laps, :work);
+"""
+
+Get_current_event: Final = """
+    SELECT * FROM event ORDER BY started DESC LIMIT 1;
 """

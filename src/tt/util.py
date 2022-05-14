@@ -1,9 +1,6 @@
 import sqlite3
 from . import db
-from .model import (
-    Config,
-    AppConfig,
-)
+from .model import Config, AppConfig, Task, MultiText
 
 
 Conn = sqlite3.Connection
@@ -41,3 +38,19 @@ def show_cfg(conn: Conn, app_cfg: AppConfig, cfg: Config | None = None):
         show_cfg_cn(app_cfg, cfg)
     else:
         show_cfg_en(app_cfg, cfg)
+
+
+def show_tasks(tasks: list[Task], lang: str) -> None:
+    no_task = MultiText(
+        cn="尚未添加任何任务类型，可使用 'tt add NAME' 添加任务类型。",
+        en="There is no any task type. Use 'tt add NAME' to add a task.",
+    )
+    header = MultiText(cn="\n[任务类型列表]\n", en="\n[Task types]\n")
+    if not tasks:
+        print(no_task[lang])  # type: ignore
+        return
+
+    print(header[lang])  # type: ignore
+    for task in tasks:
+        print(f"* {task}")
+    print()
