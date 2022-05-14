@@ -4,7 +4,9 @@ from ..model import Event, EventStatus, LapName
 
 
 def test_date_id():
-    assert type(model.date_id()) is str
+    date_id = model.date_id()
+    assert type(date_id) is str
+    assert len(date_id) >= 6
 
 
 def assert_rand_id(a, b):
@@ -37,7 +39,9 @@ class TestTask:
 
     def test_init_with_wrong_name(self):
         assert model.new_task({"name": "a+b"}).is_err()
-        assert model.new_task({"name": " a "}).is_err()
+        err = model.new_task({"name": " a "}).unwrap_err()
+        assert type(err["cn"]) is str
+        assert type(err["en"]) is str
 
     def test_init(self):
         a = {"id": model.rand_id(), "name": "aaa", "alias": "bbb"}

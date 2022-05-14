@@ -4,15 +4,20 @@ import msgpack
 from pathlib import Path
 from appdirs import AppDirs
 from result import Err, Ok, Result
-from typing import Final, Iterable
+from typing import Final, Iterable, TypeAlias
 from . import stmt
 from . import model
-from .model import Config, ConfigName, AppConfig, Task
+from .model import (
+    Config,
+    ConfigName,
+    AppConfig,
+    Task,
+    MultiText,
+)
 
+Conn: TypeAlias = sqlite3.Connection
 
-Conn: Final = sqlite3.Connection
-
-NoResultError: Final = "db-query-no-result"
+NoResultError: Final = MultiText(cn="数据库检索无结果", en="db-query-no-result")
 OK: Final = Ok("OK")
 
 AppCfgFilename: Final = "tt-focus.cfg"
@@ -65,7 +70,7 @@ def ensure_cfg_file() -> None:
             init_cfg(conn)
 
 
-def get_cfg(conn: Conn) -> Result[Config, str]:
+def get_cfg(conn: Conn) -> Result[Config, MultiText]:
     row = conn.execute(stmt.Get_metadata, (ConfigName,)).fetchone()
     if row is None:
         return Err(NoResultError)
@@ -89,5 +94,23 @@ def init_cfg(conn: Conn) -> None:
         ).unwrap()
 
 
-def insert_task(conn: Conn, task: Task) -> None:
-    conn_update(conn, stmt.Insert_task, asdict(task)).unwrap()
+def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
+    row = conn.execute(stmt.Get_task_by_name, (name,)).fetchone()
+    if row is None:
+        return Err(NoResultError)
+
+    task = model.new_task(dict(row)).unwrap()
+    return Ok(task)
+
+
+def insert_task(conn: Conn, task: Task) -> Result[str, MultiText]:
+    old_task = get_task_by_name(conn, task.name).ok()
+    if old_task is None:
+        conn_update(conn, stmt.Insert_task, asdict(task)).unwrap()
+        return OK
+
+    err = MultiText(
+        cn=f"任务类型已存在: {old_task}",
+        en=f"Task type exists: {old_task}",
+    )
+    return Err(err)

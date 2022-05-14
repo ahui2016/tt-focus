@@ -35,6 +35,10 @@ Insert_metadata: Final = """
 Get_metadata: Final = "SELECT value FROM metadata WHERE name=?;"
 Update_metadata: Final = "UPDATE metadata SET value=:value WHERE name=:name;"
 
+Get_task_by_name: Final = """
+    SELECT * FROM task WHERE name=?;
+"""
+
 Insert_task: Final = """
     INSERT INTO task (id, name, alias) VALUES (:id, :name, :alias);
 """

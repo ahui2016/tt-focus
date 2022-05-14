@@ -5,7 +5,10 @@ from typing import Final, Callable
 from pathlib import Path
 import shutil
 
+from result import Err, Ok
+
 from . import (
+    model,
     db,
     util,
     __version__,
@@ -170,3 +173,50 @@ def set_command(ctx: click.Context, language: str, db_folder: str):
     if db_folder:
         set_db_folder(db_folder)
         ctx.exit()
+
+
+short_help = MultiText(cn="新增任务类型。", en="Add a new type of task.")
+
+help_text = MultiText(
+    cn="""新增任务类型。
+
+    示例:
+
+    tt add coding              # 添加一种名为 coding 的任务
+
+    tt add coding -alias 编程  # 添加一种名为 coding 的任务，别名 "编程"
+    """,
+    en="""Add a new type of task.
+
+    NAME is the name of the new task type.
+    """,
+)
+
+help_add_alias = MultiText(
+    cn="新任务类型的别名。", en="Set an alias of the new task type."
+)
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS, short_help=short_help[lang], help=help_text[lang])  # type: ignore
+@click.argument("name")
+@click.option(
+    "alias",
+    "-alias",
+    default="",
+    help=help_add_alias[lang],  # type: ignore
+)
+@click.pass_context
+def add(ctx: click.Context, name: str, alias: str):
+    """Add a new type of task. 新增任务类型。"""
+    with connect() as conn:
+        match model.new_task(dict(name=name, alias=alias)):
+            case Err(e):
+                print(e[lang])
+            case Ok(task):
+
+                match db.insert_task(conn, task):
+                    case Err(e):
+                        print(e[lang])
+                    case Ok():
+                        print(f"Task added: {task}")
+    ctx.exit()

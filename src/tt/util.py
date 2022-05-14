@@ -11,11 +11,11 @@ Conn = sqlite3.Connection
 
 def show_cfg_cn(app_cfg: AppConfig, cfg: Config):
     print()
-    print(f"        [语言] {app_cfg['lang']}")
-    print(f"   [数据库文件] {app_cfg['db_path']}")
-    print(f" [工作时间下限] {cfg['split_min']} 分钟")
-    print(f" [休息时间下限] {cfg['pause_min']} 分钟")
-    print(f" [休息时间上限] {cfg['pause_max']} 分钟")
+    print(f"         语言: {app_cfg['lang']}")
+    print(f"   数据库文件: {app_cfg['db_path']}")
+    print(f" 工作时间下限: {cfg['split_min']} 分钟")
+    print(f" 休息时间下限: {cfg['pause_min']} 分钟")
+    print(f" 休息时间上限: {cfg['pause_max']} 分钟")
     print()
     print("* 使用命令 'tt help min' 或 'tt help max' 可查看关于时间上下限的说明。\n")
 

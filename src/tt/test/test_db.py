@@ -1,3 +1,4 @@
+from typing import Final
 import pytest
 from .. import stmt
 from .. import model
@@ -34,3 +35,23 @@ class TestDB:
         cfg2 = db.get_cfg(temp_db_conn).unwrap()
         assert_cfg(cfg2)
         assert_equal_cfg(cfg, cfg2)
+
+    def test_insert_get_task(self, temp_db_conn):
+        name: Final = "coding"
+        a = model.new_task({"name": name}).unwrap()
+        assert db.insert_task(temp_db_conn, a).is_ok()
+        b = db.get_task_by_name(temp_db_conn, a.name).unwrap()
+        assert b.id == a.id and b.name == name and b.alias == ""
+
+        alias: Final = "learning"
+        c = model.new_task({"name": name, "alias": alias}).unwrap()
+        err = db.insert_task(temp_db_conn, c).err()
+        assert name in err["cn"] and name in err["en"]
+
+        d: Final = dict(id=model.date_id(), name="read", alias=alias)
+        e = model.new_task(d).unwrap()
+        assert db.insert_task(temp_db_conn, e).is_ok()
+        f = db.get_task_by_name(temp_db_conn, d["name"]).unwrap()
+        assert (
+            f.id == d["id"] and f.name == d["name"] and f.alias == d["alias"]
+        )

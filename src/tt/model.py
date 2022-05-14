@@ -9,6 +9,7 @@ import msgpack
 
 
 OK: Final = Ok("OK")
+# UnknownReturn: Final = Exception("Unknown-return")
 
 DateFormat: Final = "YYYY-MM-DD"
 TimeFormat: Final = "HH:mm:ss"
@@ -100,17 +101,22 @@ class Task:
     name: str
     alias: str
 
+    def __str__(self):
+        if self.alias:
+            return f"{self.name} ({self.alias})"
+        return f"{self.name}"
+
 
 def new_task(d: dict) -> Result[Task, MultiText]:
     t_id = d.get("id", rand_id())
     name = d["name"]
     alias = d.get("alias", "")
     task = Task(id=t_id, name=name, alias=alias)
-    match check_name(name):
-        case Ok():
-            return Ok(task)
-        case Err(err):
-            return Err(err)
+    err = check_name(name).err()
+    if err is None:
+        return Ok(task)
+    else:
+        return Err(err)
 
 
 @dataclass
