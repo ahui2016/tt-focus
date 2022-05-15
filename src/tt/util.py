@@ -128,7 +128,7 @@ def show_status(conn: Conn, lang: str) -> None:
         case Err(err):
             print(err[lang])  # type: ignore
         case Ok(event):
-            task = db.get_task_by_id(conn, event.task_id)
+            task = db.get_task_by_id(conn, event.task_id).unwrap()
             if event.status is EventStatus.Stopped:
                 show_stopped_status(lang)
             else:

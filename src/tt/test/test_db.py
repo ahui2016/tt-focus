@@ -43,6 +43,9 @@ class TestDB:
         b = db.get_task_by_name(temp_db_conn, a.name).unwrap()
         assert b.id == a.id and b.name == name and b.alias == ""
 
+        a2 = model.new_task({"name": "writing"}).unwrap()
+        assert db.insert_task(temp_db_conn, a2).is_ok()
+
         alias: Final = "learning"
         c = model.new_task({"name": name, "alias": alias}).unwrap()
         err = db.insert_task(temp_db_conn, c).err()

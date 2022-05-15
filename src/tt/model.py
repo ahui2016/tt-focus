@@ -125,7 +125,7 @@ class Event:
     task_id: str
     started: int  # timestamp
     status: EventStatus  # 状态
-    laps: tuple[Lap]  # 过程
+    laps: tuple[Lap, ...]  # 过程
     work: int  # 有效工作时间合计：秒
 
     def __init__(self, d: dict):
@@ -176,8 +176,8 @@ class Event:
             self.cancel()
             return
 
-        # 新小节的开始时间，就是上个小节的结束时间的下一秒
-        start = last_lap[2] + 1
+        # 新小节的开始时间，就是上个小节的结束时间
+        start = last_lap[2]
         lap = (LapName.Split.name, start, 0, 0)
         self.laps += (lap,)
         self.work += last_lap[-1]
@@ -196,9 +196,9 @@ class Event:
             self.laps = self.laps[:-1]
             start = now()
         else:
-            # 上个小节有效，新小节的开始时间，就是上个小节的结束时间的下一秒，
+            # 上个小节有效，新小节的开始时间，就是上个小节的结束时间，
             # 并且把上个小节的长度累加到总工作时长中。
-            start = last_lap[2] + 1
+            start = last_lap[2]
             self.work += last_lap[-1]
 
         lap = (LapName.Pause.name, start, 0, 0)
@@ -226,8 +226,8 @@ class Event:
             self.laps = self.laps[:-1]
             start = now()
         else:
-            # 上个小节有效，新小节的开始时间，就是上个小节的结束时间的下一秒，
-            start = last_lap[2] + 1
+            # 上个小节有效，新小节的开始时间，就是上个小节的结束时间，
+            start = last_lap[2]
 
         lap = (LapName.Split.name, start, 0, 0)
         self.laps += (lap,)
@@ -242,14 +242,18 @@ class Event:
 
         # 如果上个小节的长度小于下限，或大于上限，则上个小节被视为无效 (直接删除)。
         if (
-            self.status is EventStatus.Running
-            and last_lap[-1] <= cfg["split_min"] * 60
-        ) or (
-            self.status is EventStatus.Pausing
-            and last_lap[-1] <= cfg["pause_min"] * 60
-        ) or (
-            self.status is EventStatus.Pausing
-            and last_lap[-1] > cfg["pause_max"] * 60
+            (
+                self.status is EventStatus.Running
+                and last_lap[-1] <= cfg["split_min"] * 60
+            )
+            or (
+                self.status is EventStatus.Pausing
+                and last_lap[-1] <= cfg["pause_min"] * 60
+            )
+            or (
+                self.status is EventStatus.Pausing
+                and last_lap[-1] > cfg["pause_max"] * 60
+            )
         ):
             self.laps = self.laps[:-1]
         elif self.status is EventStatus.Running:

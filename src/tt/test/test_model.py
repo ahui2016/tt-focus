@@ -1,6 +1,6 @@
 import pytest
 from .. import model
-from ..model import Event, EventStatus, LapName
+from ..model import Event, EventStatus, LapName, Lap
 
 
 def test_date_id():
@@ -51,6 +51,18 @@ class TestTask:
         )
 
 
+def go_back_n_minutes(event: Event, n: int) -> Event:
+    """让 event 时光倒流 n 分钟。"""
+    s = n * 60
+    event.started -= s
+    laps: tuple[Lap, ...] = ()
+    for lap in event.laps:
+        end = 0 if lap[2] == 0 else lap[2] - s
+        laps += ((lap[0], lap[1] - s, end, lap[3]),)
+    event.laps = laps
+    return event
+
+
 class TestEvent:
     def test_init_without_id(self):
         start = model.now()
@@ -79,6 +91,45 @@ class TestEvent:
         laps = model.unpack(c["laps"])
         assert b.laps == laps
         assert b.work == c["work"]
+
+    def test_operation(self):
+        task = model.new_task({"name": "aaa"}).unwrap()
+        cfg = model.default_cfg()
+
+        len1 = 6
+        a = Event({"task_id": task.id})
+        a = go_back_n_minutes(a, len1)
+        a.split(cfg)
+        assert a.status == EventStatus.Running
+        assert (a.work - len1 * 60) < 2  # 允许有一秒误差
+        assert len(a.laps) == 2
+
+        len2 = 3
+        a = go_back_n_minutes(a, len2)
+        old_laps = a.laps
+        old_work = a.work
+        a.split(cfg)
+        assert a.status == EventStatus.Running
+        assert old_work == a.work
+        assert old_laps == a.laps  # 时长小于 split-min, 本次操作被忽略。
+
+        len3 = 4
+        a = go_back_n_minutes(a, len3)
+        a.pause(cfg)
+        assert a.status == EventStatus.Pausing
+        length = len1 + len2 + len3  # 由于上一次的 split 操作被忽略，计时未中断。
+        assert (a.work - length * 60) < 2  # 允许有一秒误差
+        assert len(a.laps) == 3
+
+        with pytest.raises(
+            RuntimeError, match=r"Only running event can be split"
+        ):
+            a.split(cfg)
+
+        with pytest.raises(
+            RuntimeError, match=r"Only running event can be paused"
+        ):
+            a.pause(cfg)
 
 
 def test_base_repr():
