@@ -259,6 +259,4 @@ def start(ctx: click.Context, name: str):
     ctx.exit()
 
 
-short_help = MultiText(
-    cn="查看正在计时的事件的状态。", en="Status of the current event."
-)
+short_help = MultiText(cn="查看正在计时的事件的状态。", en="Status of the current event.")

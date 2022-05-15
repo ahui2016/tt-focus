@@ -108,7 +108,7 @@ def add_new_event(conn: Conn, name: str) -> MultiText:
 def show_stopped_status(lang: str) -> None:
     info = MultiText(
         cn="当前无正在计时的任务，可使用 'tt list -e' 查看最近的事件。",
-        en="No event running. Try 'tt list -e' to list out recent events."
+        en="No event running. Try 'tt list -e' to list out recent events.",
     )
     print(info[lang])  # type: ignore
 
@@ -118,13 +118,9 @@ def show_running_status(event: Event, task: Task, lang: str) -> None:
     status = f"(id:{event.id}) {date} **{event.status.name.lower()}**"
 
     header = MultiText(
-        cn=f"任务 | {task}\n事件 | {status}",
-        en=f"Task | {task}\nEvent| {status}"
+        cn=f"任务 | {task}\n事件 | {status}", en=f"Task | {task}\nEvent| {status}"
     )
-    total = MultiText(
-        cn=f"合计 | ",
-        en=f""
-    )
+    total = MultiText(cn=f"合计 | ", en=f"")
 
 
 def show_status(conn: Conn, lang: str) -> None:

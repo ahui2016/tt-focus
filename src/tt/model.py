@@ -148,10 +148,6 @@ class Event:
             "work": 0,
         }
 
-    def check_stopped(self) -> None:
-        if self.status is EventStatus.Stopped:
-            raise RuntimeError("Cannot operate on a stopped event.")
-
     def close_last_lap(self) -> Lap:
         """上一个小节结束，填写结束时间与小节长度。"""
         last_lap = self.laps[-1]
@@ -167,15 +163,16 @@ class Event:
         self.laps = self.laps[:-1] + (last_lap,)
 
     def split(self, cfg: Config) -> None:
-        self.check_stopped()
         if self.status is not EventStatus.Running:
-            raise RuntimeError("Only 'Running' event can be split.")
+            raise RuntimeError(
+                f"Only running event can be split. Current status: {self.status}"
+            )
 
         # 上一个小节结束。
         last_lap = self.close_last_lap()
 
         # 如果上个小节的长度小于下限，则本次 split 操作无效。
-        if last_lap[-1] <= cfg['split_min'] * 60:
+        if last_lap[-1] <= cfg["split_min"] * 60:
             self.cancel()
             return
 
@@ -186,23 +183,80 @@ class Event:
         self.work += last_lap[-1]
 
     def pause(self, cfg: Config) -> None:
-        self.check_stopped()
         if self.status is not EventStatus.Running:
-            raise RuntimeError("Only 'Running' event can be paused.")
+            raise RuntimeError(
+                f"Only running event can be paused. Current status: {self.status}"
+            )
 
         # 上一个小节结束。
         last_lap = self.close_last_lap()
 
         # 如果上个小节的长度小于下限，则上个小节被视为无效 (直接删除)。
-        if last_lap[-1] <= cfg['split_min'] * 60:
+        if last_lap[-1] <= cfg["split_min"] * 60:
             self.laps = self.laps[:-1]
+            start = now()
+        else:
+            # 上个小节有效，新小节的开始时间，就是上个小节的结束时间的下一秒，
+            # 并且把上个小节的长度累加到总工作时长中。
+            start = last_lap[2] + 1
+            self.work += last_lap[-1]
+
+        lap = (LapName.Pause.name, start, 0, 0)
+        self.laps += (lap,)
+        self.status = EventStatus.Pausing
+
+    def resume(self, cfg: Config) -> None:
+        if self.status is not EventStatus.Pausing:
+            raise RuntimeError(
+                f"Only 'pausing' event can be resumed. Current status: {self.status}"
+            )
+
+        # 上一个小节结束。
+        last_lap = self.close_last_lap()
+
+        # 如果上个小节的长度大于上限，则视为无效，并且事件状态变为 stopped,
+        # caller 要检查事件状态，如果变为 stopped 则需要在 caller 启动新的事件。
+        if last_lap[-1] > cfg["pause_max"] * 60:
+            self.laps = self.laps[:-1]
+            self.status = EventStatus.Stopped
             return
 
-        # 新小节的开始时间，就是上个小节的结束时间的下一秒
-        start = last_lap[2] + 1
+        # 如果上个小节的长度小于下限，则上个小节被视为无效 (直接删除)。
+        if last_lap[-1] <= cfg["pause_min"] * 60:
+            self.laps = self.laps[:-1]
+            start = now()
+        else:
+            # 上个小节有效，新小节的开始时间，就是上个小节的结束时间的下一秒，
+            start = last_lap[2] + 1
+
         lap = (LapName.Split.name, start, 0, 0)
         self.laps += (lap,)
-        self.work += last_lap[-1]
+        self.status = EventStatus.Running
+
+    def stop(self, cfg: Config) -> None:
+        if self.status is EventStatus.Stopped:
+            raise RuntimeError("Cannot operate on a stopped event.")
+
+        # 上一个小节结束。
+        last_lap = self.close_last_lap()
+
+        # 如果上个小节的长度小于下限，或大于上限，则上个小节被视为无效 (直接删除)。
+        if (
+            self.status is EventStatus.Running
+            and last_lap[-1] <= cfg["split_min"] * 60
+        ) or (
+            self.status is EventStatus.Pausing
+            and last_lap[-1] <= cfg["pause_min"] * 60
+        ) or (
+            self.status is EventStatus.Pausing
+            and last_lap[-1] > cfg["pause_max"] * 60
+        ):
+            self.laps = self.laps[:-1]
+        elif self.status is EventStatus.Running:
+            # 如果不属于以上特殊情况，并且上个小节是 running 状态，则需要统计工作时长。
+            self.work += last_lap[-1]
+
+        self.status = EventStatus.Stopped
 
 
 # https://github.com/numpy/numpy/blob/main/numpy/core/numeric.py
