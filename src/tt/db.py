@@ -95,8 +95,8 @@ def init_cfg(conn: Conn) -> None:
         ).unwrap()
 
 
-def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
-    row = conn.execute(stmt.Get_task_by_name, (name,)).fetchone()
+def get_task(conn: Conn, query: str, value: str) -> Result[Task, MultiText]:
+    row = conn.execute(query, (value,)).fetchone()
     if row is None:
         return Err(NoResultError)
 
@@ -104,9 +104,12 @@ def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
     return Ok(task)
 
 
-def get_task_id(conn: Conn, name: str) -> str:
-    task = get_task_by_name(conn, name).unwrap()
-    return task.id
+def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
+    return get_task(conn, stmt.Get_task_by_name, name)
+
+
+def get_task_by_id(conn: Conn, task_id: str) -> Result[Task, MultiText]:
+    return get_task(conn, stmt.Get_task_by_id, task_id)
 
 
 def insert_task(conn: Conn, task: Task) -> Result[str, MultiText]:
@@ -127,7 +130,17 @@ def get_all_task(conn: Conn) -> list[Task]:
     return [model.new_task(dict(row)).unwrap() for row in rows]
 
 
-def insert_event(conn: Conn, name: str) -> None:
-    task_id = get_task_id(conn, name)
-    event = Event({"task_id": task_id})
+def insert_event(conn: Conn, event: Event) -> None:
     conn_update(conn, stmt.Insert_event, asdict(event)).unwrap()
+
+
+def get_last_event(conn: Conn) -> Result[Event, MultiText]:
+    row = conn.execute(stmt.Get_last_event).fetchone()
+    if row is None:
+        err = MultiText(
+            cn="没有任何事件数据，可使用 'tt start TASK' 启动一个事件。",
+            en="No event. Try 'tt start Task' to make an event.",
+        )
+        return Err(err)
+
+    return Ok(model.Event(dict(row)))

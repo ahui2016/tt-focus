@@ -128,7 +128,7 @@ class Event:
     laps: tuple[Lap]  # 过程
     work: int  # 有效工作时间合计：秒
 
-    def __init__(self, d: dict) -> None:
+    def __init__(self, d: dict):
         self.id = d.get("id", date_id())
         self.task_id = d["task_id"]
         self.started = now()
@@ -147,6 +147,62 @@ class Event:
             "laps": pack(self.laps),
             "work": 0,
         }
+
+    def check_stopped(self) -> None:
+        if self.status is EventStatus.Stopped:
+            raise RuntimeError("Cannot operate on a stopped event.")
+
+    def close_last_lap(self) -> Lap:
+        """上一个小节结束，填写结束时间与小节长度。"""
+        last_lap = self.laps[-1]
+        end = now()
+        last_lap = (last_lap[0], last_lap[1], end, end - last_lap[1])
+        self.laps = self.laps[:-1] + (last_lap,)
+        return last_lap
+
+    def cancel(self) -> None:
+        """把上一个小节恢复原状，不添加新的小节。"""
+        last_lap = self.laps[-1]
+        last_lap = (last_lap[0], last_lap[1], 0, 0)
+        self.laps = self.laps[:-1] + (last_lap,)
+
+    def split(self, cfg: Config) -> None:
+        self.check_stopped()
+        if self.status is not EventStatus.Running:
+            raise RuntimeError("Only 'Running' event can be split.")
+
+        # 上一个小节结束。
+        last_lap = self.close_last_lap()
+
+        # 如果上个小节的长度小于下限，则本次 split 操作无效。
+        if last_lap[-1] <= cfg['split_min'] * 60:
+            self.cancel()
+            return
+
+        # 新小节的开始时间，就是上个小节的结束时间的下一秒
+        start = last_lap[2] + 1
+        lap = (LapName.Split.name, start, 0, 0)
+        self.laps += (lap,)
+        self.work += last_lap[-1]
+
+    def pause(self, cfg: Config) -> None:
+        self.check_stopped()
+        if self.status is not EventStatus.Running:
+            raise RuntimeError("Only 'Running' event can be paused.")
+
+        # 上一个小节结束。
+        last_lap = self.close_last_lap()
+
+        # 如果上个小节的长度小于下限，则上个小节被视为无效 (直接删除)。
+        if last_lap[-1] <= cfg['split_min'] * 60:
+            self.laps = self.laps[:-1]
+            return
+
+        # 新小节的开始时间，就是上个小节的结束时间的下一秒
+        start = last_lap[2] + 1
+        lap = (LapName.Split.name, start, 0, 0)
+        self.laps += (lap,)
+        self.work += last_lap[-1]
 
 
 # https://github.com/numpy/numpy/blob/main/numpy/core/numeric.py

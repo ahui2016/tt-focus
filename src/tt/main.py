@@ -239,6 +239,8 @@ def list_command(ctx: click.Context):
         tasks = db.get_all_task(conn)
         util.show_tasks(tasks, lang)
 
+    ctx.exit()
+
 
 short_help = MultiText(
     cn="启动一个事件（开始做任务）。", en="Start an event (to do a task)."
@@ -251,5 +253,12 @@ short_help = MultiText(
 def start(ctx: click.Context, name: str):
     """List out task or events. 任务列表或事件列表。"""
     with connect() as conn:
-        tasks = db.get_all_task(conn)
-        util.show_tasks(tasks, lang)
+        r = util.add_new_event(conn, name)
+        print(r[lang])  # type: ignore
+
+    ctx.exit()
+
+
+short_help = MultiText(
+    cn="查看正在计时的事件的状态。", en="Status of the current event."
+)

@@ -1,9 +1,12 @@
 import sqlite3
+from typing import TypeAlias
+import arrow
+from result import Result, Err, Ok
+
 from . import db
-from .model import Config, AppConfig, Task, MultiText
+from .model import Config, AppConfig, Task, MultiText, Event, EventStatus, OK
 
-
-Conn = sqlite3.Connection
+Conn: TypeAlias = sqlite3.Connection
 
 
 def show_cfg_cn(app_cfg: AppConfig, cfg: Config):
@@ -54,3 +57,83 @@ def show_tasks(tasks: list[Task], lang: str) -> None:
     for task in tasks:
         print(f"* {task}")
     print()
+
+
+def check_last_event_stopped(conn: Conn) -> Result[str, MultiText]:
+    """确保上一个事件已结束。"""
+    r = db.get_last_event(conn)
+    if r.is_err():
+        return OK  # 唯一的错误是数据库中无事件
+
+    event = r.unwrap()
+    if event.status is not EventStatus.Stopped:
+        err = MultiText(
+            cn="不可启动新事件，因为上一个事件未结束 (可使用 'tt status' 查看状态)",
+            en="Cannot make a new event. Try 'tt status' to get more information.",
+        )
+        return Err(err)
+
+    return OK
+
+
+def add_new_event(conn: Conn, name: str) -> MultiText:
+    err = check_last_event_stopped(conn).err()
+    if err is not None:
+        return err
+
+    r = db.get_task_by_name(conn, name)
+    if r.is_err():
+        return MultiText(
+            cn=f"不存在任务类型: {name}, 可使用 'tt add {name}' 添加此任务类型。",
+            en=f"Not Found: {name}. Try 'tt add {name}' to add it as a task type.",
+        )
+
+    task = r.unwrap()
+    event = Event({"task_id": task.id})
+    db.insert_event(conn, event)
+    started = arrow.get(event.started).format("HH:mm:ss")
+
+    if task.alias:
+        return MultiText(
+            cn=f"事件: {event.id}, 任务: {task.name} ({task.alias}), 开始: {started}",
+            en=f"Event: {event.id}, Task: {task.name} ({task.alias}), Started from {started}",
+        )
+    else:
+        return MultiText(
+            cn=f"事件: {event.id}, 任务: {task.name}, 开始: {started}",
+            en=f"Event: {event.id}, Task: {task.name}, Started from {started}",
+        )
+
+
+def show_stopped_status(lang: str) -> None:
+    info = MultiText(
+        cn="当前无正在计时的任务，可使用 'tt list -e' 查看最近的事件。",
+        en="No event running. Try 'tt list -e' to list out recent events."
+    )
+    print(info[lang])  # type: ignore
+
+
+def show_running_status(event: Event, task: Task, lang: str) -> None:
+    date = arrow.get(event.started).format("YYYY-MM-DD")
+    status = f"(id:{event.id}) {date} **{event.status.name.lower()}**"
+
+    header = MultiText(
+        cn=f"任务 | {task}\n事件 | {status}",
+        en=f"Task | {task}\nEvent| {status}"
+    )
+    total = MultiText(
+        cn=f"合计 | ",
+        en=f""
+    )
+
+
+def show_status(conn: Conn, lang: str) -> None:
+    match db.get_last_event(conn):
+        case Err(err):
+            print(err[lang])  # type: ignore
+        case Ok(event):
+            task = db.get_task_by_id(conn, event.task_id)
+            if event.status is EventStatus.Stopped:
+                show_stopped_status(lang)
+            else:
+                show_running_status(event, task, lang)

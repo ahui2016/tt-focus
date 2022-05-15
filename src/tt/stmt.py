@@ -14,8 +14,10 @@ CREATE TABLE IF NOT EXISTS task
 (
     id      text   PRIMARY KEY COLLATE NOCASE,
     name    text   NOT NULL UNIQUE COLLATE NOCASE,
-    alias   text   NOT NULL UNIQUE COLLATE NOCASE
+    alias   text   NOT NULL COLLATE NOCASE
 );
+
+CREATE INDEX IF NOT EXISTS idx_task_alias ON task(alias);
 
 CREATE TABLE IF NOT EXISTS event
 (
@@ -37,6 +39,10 @@ Insert_metadata: Final = """
 Get_metadata: Final = "SELECT value FROM metadata WHERE name=?;"
 Update_metadata: Final = "UPDATE metadata SET value=:value WHERE name=:name;"
 
+Get_task_by_id: Final = """
+    SELECT * FROM task WHERE id=?;
+"""
+
 Get_task_by_name: Final = """
     SELECT * FROM task WHERE name=?;
 """
@@ -54,6 +60,6 @@ Insert_event: Final = """
     VALUES (:id, :task_id, :started, :status, :laps, :work);
 """
 
-Get_current_event: Final = """
+Get_last_event: Final = """
     SELECT * FROM event ORDER BY started DESC LIMIT 1;
 """
