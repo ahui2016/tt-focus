@@ -87,15 +87,11 @@ def check_last_event_stopped(conn: Conn) -> Result[str, MultiText]:
 
 
 def format_date(t: int) -> str:
-    return arrow.get(t).to('local').format("YYYY-MM-DD")
+    return arrow.get(t).to("local").format("YYYY-MM-DD")
 
 
 def format_time(t: int) -> str:
-    if t == 0:
-        dt = arrow.now()
-    else:
-        dt = arrow.get(t)
-    return dt.to('local').format("HH:mm:ss")
+    return arrow.get(t).to("local").format("HH:mm:ss")
 
 
 def format_time_len(s: int) -> str:
@@ -224,10 +220,11 @@ def show_running_status(
     )
 
     for lap in event.laps:
+        start = format_time(lap[1])
         link_mark = ".." if lap[2] == 0 else "->"
-        print(
-            f"{lap[0]}  {format_time(lap[1])} {link_mark} {format_time(lap[2])} [{format_time_len(lap[3])}]"
-        )
+        end = model.now() if lap[2] == 0 else lap[2]
+        length = format_time_len(end - lap[1])
+        print(f"{lap[0]}  {start} {link_mark} {format_time(end)} [{length}]")
     print()
 
     footer_running = MultiText(
