@@ -2,7 +2,7 @@ import re
 import arrow
 from typing import Final, TypedDict
 from result import Err, Ok, Result
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum, auto
 from random import randrange
 import msgpack
@@ -63,9 +63,13 @@ def unpack(data: bytes):
     return msgpack.unpackb(data, use_list=False)
 
 
-class MultiText(TypedDict):
+@dataclass
+class MultiText:
     cn: str
     en: str
+
+    def str(self, lang: str) -> str:
+        return asdict(self)[lang]
 
 
 class EventStatus(Enum):

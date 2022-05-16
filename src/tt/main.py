@@ -67,7 +67,7 @@ help_info = MultiText(
     "-i",
     "--info",
     is_flag=True,
-    help=help_info[lang],  # type: ignore
+    help=help_info.str(lang),
     expose_value=False,
     callback=show_info,
 )
@@ -98,7 +98,7 @@ help_set_db_folder = MultiText(
 def update_db_path(new_db_path: Path, success: MultiText):
     app_cfg["db_path"] = new_db_path.resolve().__str__()
     db.write_cfg_file(app_cfg)
-    print(success[lang])  # type: ignore
+    print(success.str(lang))
 
 
 def change_db_path(new_db_path: Path):
@@ -143,7 +143,9 @@ help_text = MultiText(
 )
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, help=help_text[lang], name="set")  # type: ignore
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, help=help_text.str(lang), name="set"
+)
 @click.option(
     "language",
     "-lang",
@@ -155,7 +157,7 @@ help_text = MultiText(
     "-db",
     "--db-folder",
     type=click.Path(exists=True, file_okay=False),
-    help=help_set_db_folder[lang],  # type: ignore
+    help=help_set_db_folder.str(lang),
 )
 @click.pass_context
 def set_command(ctx: click.Context, language: str, db_folder: str):
@@ -167,7 +169,7 @@ def set_command(ctx: click.Context, language: str, db_folder: str):
         app_cfg["lang"] = language
         db.write_cfg_file(app_cfg)
         msg = MultiText(cn=" [语言] cn (中文)", en=" [language] en")
-        print(msg[language])  # type: ignore
+        print(msg.str(language))
         ctx.exit()
 
     if db_folder:
@@ -199,15 +201,15 @@ help_add_alias = MultiText(
 
 @cli.command(
     context_settings=CONTEXT_SETTINGS,
-    short_help=short_help[lang],  # type: ignore
-    help=help_text[lang],  # type: ignore
+    short_help=short_help.str(lang),
+    help=help_text.str(lang),
 )
 @click.argument("name")
 @click.option(
     "alias",
     "-alias",
     default="",
-    help=help_add_alias[lang],  # type: ignore
+    help=help_add_alias.str(lang),
 )
 @click.pass_context
 def add(ctx: click.Context, name: str, alias: str):
@@ -215,12 +217,12 @@ def add(ctx: click.Context, name: str, alias: str):
     with connect() as conn:
         match model.new_task(dict(name=name, alias=alias)):
             case Err(e):
-                print(e[lang])
+                print(e.str(lang))
             case Ok(task):
 
                 match db.insert_task(conn, task):
                     case Err(e):
-                        print(e[lang])
+                        print(e.str(lang))
                     case Ok():
                         print(f"Task added: {task}")
     ctx.exit()
@@ -230,7 +232,9 @@ short_help = MultiText(cn="任务列表或事件列表。", en="List out task or
 
 
 @cli.command(
-    context_settings=CONTEXT_SETTINGS, short_help=short_help[lang], name="list"  # type: ignore
+    context_settings=CONTEXT_SETTINGS,
+    short_help=short_help.str(lang),
+    name="list",
 )
 @click.pass_context
 def list_command(ctx: click.Context):
@@ -247,14 +251,16 @@ short_help = MultiText(
 )
 
 
-@cli.command(context_settings=CONTEXT_SETTINGS, short_help=short_help[lang])  # type: ignore
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
 @click.argument("name", required=False)
 @click.pass_context
 def start(ctx: click.Context, name: str):
     """List out task or events. 任务列表或事件列表。"""
     with connect() as conn:
         r = util.event_start(conn, name)
-        print(r[lang])  # type: ignore
+        print(r.str(lang))
 
     ctx.exit()
 
