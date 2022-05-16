@@ -40,8 +40,8 @@ class TestTask:
     def test_init_with_wrong_name(self):
         assert model.new_task({"name": "a+b"}).is_err()
         err = model.new_task({"name": " a "}).unwrap_err()
-        assert type(err["cn"]) is str
-        assert type(err["en"]) is str
+        assert type(err.str("cn")) is str
+        assert type(err.str("en")) is str
 
     def test_init(self):
         a = {"id": model.rand_id(), "name": "aaa", "alias": "bbb"}
@@ -91,6 +91,10 @@ class TestEvent:
         laps = model.unpack(c["laps"])
         assert b.laps == laps
         assert b.work == c["work"]
+
+        started = 1652704503
+        d = Event({"task_id": a.id, "started": started})
+        assert d.started == started
 
     def test_operation(self):
         task = model.new_task({"name": "aaa"}).unwrap()
@@ -178,13 +182,13 @@ class TestEvent:
         # 模拟一个休息了 90 分钟的小节
         n6 = 90
         a = go_back_n_minutes(a, n6)
-        laps_n = a.resume(cfg)
+        a.resume(cfg)
         # 休息时间超过上限，导致事件自动结束。
         assert a.status == EventStatus.Stopped
         length = n1 + n2 + n3 + n5 + n7  # n4 被忽略, n6 是休息时间。
         assert (a.work - length * 60) < 2  # 允许有一秒误差。
         assert a.laps[3][0] == LapName.Pause.name  # n6 对应第 4 个小节，是休息小节。
-        assert laps_n == len(a.laps) == 5  # 一共 5 个小节，因为第 6 个小节超过上限被删除。
+        assert len(a.laps) == 5  # 一共 5 个小节，因为第 6 个小节超过上限被删除。
         print(a)
 
     def test_stop_with_no_laps(self):
@@ -197,19 +201,19 @@ class TestEvent:
         a = go_back_n_minutes(a, n)  # 模拟时间经过了 n 分钟
         a.pause(cfg)
         a = go_back_n_minutes(a, n2)  # 模拟时间经过了 n2 分钟
-        assert a.resume(cfg) == 1
+        a.resume(cfg)
         a = go_back_n_minutes(a, n)  # 模拟时间经过了 n 分钟
-        laps_n = a.stop(cfg)
+        a.stop(cfg)
         assert a.status == EventStatus.Stopped
         assert a.work == 0
-        assert laps_n == len(a.laps) == 0
+        assert len(a.laps) == 0
 
         b = Event({"task_id": task.id})
         b = go_back_n_minutes(b, n)  # 模拟时间经过了 n 分钟
         b.pause(cfg)
         n3 = cfg["pause_max"]
         b = go_back_n_minutes(b, n3)  # 模拟时间经过了 n3 分钟
-        assert b.resume(cfg) == 0
+        b.resume(cfg)
         assert b.status == EventStatus.Stopped
         assert b.work == 0
 

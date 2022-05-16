@@ -47,7 +47,7 @@ class TestDB:
         alias: Final = "learning"
         c = model.new_task({"name": name, "alias": alias}).unwrap()
         err = db.insert_task(temp_db_conn, c).err()
-        assert name in err["cn"] and name in err["en"]
+        assert name in err.str("cn") and name in err.str("en")
 
         d: Final = dict(id=model.date_id(), name="read", alias=alias)
         e = model.new_task(d).unwrap()

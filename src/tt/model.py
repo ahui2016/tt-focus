@@ -136,7 +136,7 @@ class Event:
     def __init__(self, d: dict):
         self.id = d.get("id", date_id())
         self.task_id = d["task_id"]
-        self.started = now()
+        self.started = d.get("started", now())
         status = d.get("status", "Running")
         self.status = EventStatus[status]
         lap = (LapName.Split.name, self.started, 0, 0)

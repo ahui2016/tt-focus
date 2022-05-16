@@ -254,15 +254,55 @@ short_help = MultiText(
 @cli.command(
     context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
 )
-@click.argument("name", required=False)
+@click.argument("task", required=False)
 @click.pass_context
-def start(ctx: click.Context, name: str):
+def start(ctx: click.Context, task: str | None):
     """List out task or events. 任务列表或事件列表。"""
-    with connect() as conn:
-        r = util.event_start(conn, name)
-        print(r.str(lang))
+    conn = connect()
 
+    if task is None:
+        r = util.get_last_task(conn)
+        if r.is_err():
+            print(r.unwrap_err().str(lang))
+            conn.close()
+            ctx.exit()
+        else:
+            task = r.unwrap()
+
+    info = util.event_start(conn, task)
+    print(info.str(lang))
+
+    conn.commit()
+    conn.close()
     ctx.exit()
 
 
 short_help = MultiText(cn="查看正在计时的事件的状态。", en="Status of the current event.")
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.pass_context
+def status(ctx: click.Context):
+    """Status of the current event. 查看正在计时的事件的状态。"""
+    with connect() as conn:
+        util.show_status(conn, lang)
+
+    ctx.exit()
+
+
+short_help = MultiText(cn="结束当前事件。", en="Stop the current event.")
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.pass_context
+def stop(ctx: click.Context):
+    """Stop the current event. 结束当前事件。"""
+    with connect() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+        util.event_stop(conn, cfg, lang)
+
+    ctx.exit()

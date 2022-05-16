@@ -87,15 +87,30 @@ def check_last_event_stopped(conn: Conn) -> Result[str, MultiText]:
 
 
 def format_date(t: int) -> str:
-    return arrow.get(t).format("YYYY-MM-DD")
+    return arrow.get(t).to('local').format("YYYY-MM-DD")
 
 
 def format_time(t: int) -> str:
-    return arrow.get(t).format("HH:mm:ss")
+    if t == 0:
+        dt = arrow.now()
+    else:
+        dt = arrow.get(t)
+    return dt.to('local').format("HH:mm:ss")
 
 
 def format_time_len(s: int) -> str:
-    return str(timedelta(s))
+    return str(timedelta(seconds=s))
+
+
+def get_last_task(conn: Conn) -> Result[str, MultiText]:
+    match db.get_last_event(conn):
+        case Err(err):
+            return Err(err)
+        case Ok(event):
+            task = db.get_task_by_id(conn, event.task_id).unwrap()
+            return Ok(task.name)
+        case _:
+            raise UnknownReturn
 
 
 def event_start(conn: Conn, name: str) -> MultiText:
@@ -110,20 +125,20 @@ def event_start(conn: Conn, name: str) -> MultiText:
             en=f"Not Found: {name}. Try 'tt add {name}' to add it as a task type.",
         )
 
-    task = r.unwrap()
-    event = Event({"task_id": task.id})
+    t = r.unwrap()
+    event = Event({"task_id": t.id})
     db.insert_event(conn, event)
     started = format_time(event.started)
 
-    if task.alias:
+    if t.alias:
         return MultiText(
-            cn=f"事件: {event.id}, 任务: {task.name} ({task.alias}), 开始: {started}",
-            en=f"Event: {event.id}, Task: {task.name} ({task.alias}), Started from {started}",
+            cn=f"事件 id:{event.id}, 任务: {t.name} ({t.alias}), 开始于 {started}",
+            en=f"Event id:{event.id}, Task: {t.name} ({t.alias}), Started from {started}",
         )
     else:
         return MultiText(
-            cn=f"事件: {event.id}, 任务: {task.name}, 开始: {started}",
-            en=f"Event: {event.id}, Task: {task.name}, Started from {started}",
+            cn=f"事件 id:{event.id}, 任务: {t.name}, 开始于 {started}",
+            en=f"Event id:{event.id}, Task: {t.name}, Started from {started}",
         )
 
 
@@ -165,24 +180,22 @@ def event_stop(conn: Conn, cfg: Config, lang: str) -> None:
     event: Event = r.unwrap()
     event.stop(cfg)
     db.update_laps(conn, event)
+    show_running_status(conn, event, None, lang)
 
     if event.work <= cfg["split_min"]:
         info = MultiText(
-            cn="以下所示事件，由于总工作时长小于下限，已自动删除。\n"
+            cn="以上所示事件，由于总工作时长小于下限，已自动删除。\n"
             + "可使用命令 'tt help min' 查看关于时长下限的说明。\n",
             en="The event below is automatically deleted.\n"
             + "Run 'tt help min' to get more information.\n",
         )
         print(info.str(lang))
-        show_running_status(conn, event, None, lang)
         db.delete_event(conn, event.id)
-    else:
-        show_running_status(conn, event, None, lang)
 
 
 def show_stopped_status(lang: str) -> None:
     info = MultiText(
-        cn="当前无正在计时的任务，可使用 'tt list -e' 查看最近的事件。",
+        cn="当前无正在计时的事件，可使用 'tt list -e' 查看最近的事件。",
         en="No event running. Try 'tt list -e' to list out recent events.",
     )
     print(info.str(lang))
@@ -203,17 +216,19 @@ def show_running_status(
         cn=f"任务 | {task}\n事件 | {status}", en=f"Task | {task}\nEvent| {status}"
     )
     total = MultiText(
-        cn=f"合计  {start} -> {now} [{work}]",
+        cn=f"合计   {start} -> {now} [{work}]",
         en=f"total  {start} -> {now} [{work}]",
     )
     print(
-        f"{header.str(lang)}\n\n{total.str(lang)}\n--------------------------------------"
+        f"\n{header.str(lang)}\n\n{total.str(lang)}\n-------------------------------------"
     )
 
     for lap in event.laps:
+        link_mark = ".." if lap[2] == 0 else "->"
         print(
-            f"{lap[0]}  {format_time(lap[1])} -> {format_time(lap[2])} [{format_time_len(lap[3])}]"
+            f"{lap[0]}  {format_time(lap[1])} {link_mark} {format_time(lap[2])} [{format_time_len(lap[3])}]"
         )
+    print()
 
     footer_running = MultiText(
         cn="可接受命令: pause/split/stop", en="Waiting for pause/split/stop"

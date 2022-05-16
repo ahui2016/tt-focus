@@ -74,7 +74,8 @@ def get_cfg(conn: Conn) -> Result[Config, MultiText]:
     row = conn.execute(stmt.Get_metadata, (ConfigName,)).fetchone()
     if row is None:
         return Err(NoResultError)
-    return Ok(model.unpack(row[0]))
+    cfg: Config = model.unpack(row[0])
+    return Ok(cfg)
 
 
 def update_cfg(conn: Conn, cfg: Config) -> None:
@@ -130,7 +131,7 @@ def get_all_task(conn: Conn) -> list[Task]:
 
 
 def insert_event(conn: Conn, event: Event) -> None:
-    conn_update(conn, stmt.Insert_event, asdict(event)).unwrap()
+    conn_update(conn, stmt.Insert_event, event.to_dict()).unwrap()
 
 
 def get_last_event(conn: Conn) -> Result[Event, MultiText]:
@@ -138,7 +139,7 @@ def get_last_event(conn: Conn) -> Result[Event, MultiText]:
     if row is None:
         err = MultiText(
             cn="没有任何事件数据，可使用 'tt start TASK' 启动一个事件。",
-            en="No event. Try 'tt start Task' to make an event.",
+            en="No event. Try 'tt start TASK' to make an event.",
         )
         return Err(err)
 
