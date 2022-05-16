@@ -1,11 +1,20 @@
 import sqlite3
 from datetime import timedelta
-from typing import TypeAlias
+from typing import TypeAlias, Callable
 import arrow
 from result import Result, Err, Ok
 
 from . import db, model
-from .model import Config, AppConfig, Task, MultiText, Event, EventStatus, OK, UnknownReturn
+from .model import (
+    Config,
+    AppConfig,
+    Task,
+    MultiText,
+    Event,
+    EventStatus,
+    OK,
+    UnknownReturn,
+)
 
 Conn: TypeAlias = sqlite3.Connection
 
@@ -147,6 +156,30 @@ def event_split(conn: Conn, cfg: Config, lang: str) -> None:
     show_status(conn, lang)
 
 
+def event_stop(conn: Conn, cfg: Config, lang: str) -> None:
+    r = get_last_event(conn)
+    if r.is_err():
+        print(r.err()[lang])  # type: ignore
+        return
+
+    event: Event = r.unwrap()
+    event.stop(cfg)
+    db.update_laps(conn, event)
+
+    if event.work <= cfg["split_min"]:
+        info = MultiText(
+            cn="以下所示事件，由于总工作时长小于下限，已自动删除。\n"
+            + "可使用命令 'tt help min' 查看关于时长下限的说明。\n",
+            en="The event below is automatically deleted.\n"
+            + "Run 'tt help min' to get more information.\n",
+        )
+        print(info[lang])  # type: ignore
+        show_running_status(conn, event, None, lang)
+        db.delete_event(conn, event.id)
+    else:
+        show_running_status(conn, event, None, lang)
+
+
 def show_stopped_status(lang: str) -> None:
     info = MultiText(
         cn="当前无正在计时的任务，可使用 'tt list -e' 查看最近的事件。",
@@ -155,7 +188,11 @@ def show_stopped_status(lang: str) -> None:
     print(info[lang])  # type: ignore
 
 
-def show_running_status(event: Event, task: Task, lang: str) -> None:
+def show_running_status(
+    conn: Conn, event: Event, task: Task | None, lang: str
+) -> None:
+    if task is None:
+        task = db.get_task_by_id(conn, event.task_id).unwrap()
     date = format_date(event.started)
     status = f"(id:{event.id}) {date} **{event.status.name.lower()}**"
     start = format_time(event.started)
@@ -182,10 +219,16 @@ def show_running_status(event: Event, task: Task, lang: str) -> None:
     footer_pausing = MultiText(
         cn="可接受命令: resume/stop", en="Waiting for resume/stop"
     )
-    if event.status is EventStatus.Running:
-        print(footer_running[lang])  # type: ignore
-    else:
-        print(footer_pausing[lang])  # type: ignore
+    footer_stopped = MultiText(
+        cn="该事件已结束。", en="The event above has stopped."
+    )
+    match event.status:
+        case EventStatus.Running:
+            print(footer_running[lang])  # type: ignore
+        case EventStatus.Pausing:
+            print(footer_pausing[lang])  # type: ignore
+        case EventStatus.Stopped:
+            print(footer_stopped[lang])  # type: ignore
     print()
 
 
@@ -198,4 +241,4 @@ def show_status(conn: Conn, lang: str) -> None:
             if event.status is EventStatus.Stopped:
                 show_stopped_status(lang)
             else:
-                show_running_status(event, task, lang)
+                show_running_status(conn, event, task, lang)
