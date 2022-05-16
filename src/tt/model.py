@@ -205,7 +205,8 @@ class Event:
         self.laps += (lap,)
         self.status = EventStatus.Pausing
 
-    def resume(self, cfg: Config) -> None:
+    def resume(self, cfg: Config) -> int:
+        """return len(self.laps)"""
         if self.status is not EventStatus.Pausing:
             raise RuntimeError(
                 f"Only pausing event can be resumed. Current status: {self.status}"
@@ -216,10 +217,10 @@ class Event:
 
         # 如果上个小节的长度大于上限，则视为无效，并且事件状态变为 stopped,
         # caller 要检查事件状态，如果变为 stopped 则需要在 caller 启动新的事件。
-        if last_lap[-1] > cfg["pause_max"] * 60:
+        if last_lap[-1] >= cfg["pause_max"] * 60:
             self.laps = self.laps[:-1]
             self.status = EventStatus.Stopped
-            return
+            return len(self.laps)
 
         # 如果上个小节的长度小于下限，则上个小节被视为无效 (直接删除)。
         if last_lap[-1] <= cfg["pause_min"] * 60:
@@ -232,8 +233,10 @@ class Event:
         lap = (LapName.Split.name, start, 0, 0)
         self.laps += (lap,)
         self.status = EventStatus.Running
+        return len(self.laps)
 
-    def stop(self, cfg: Config) -> None:
+    def stop(self, cfg: Config) -> int:
+        """return len(self.laps)"""
         if self.status is EventStatus.Stopped:
             raise RuntimeError("Cannot operate on a stopped event.")
 
@@ -261,6 +264,7 @@ class Event:
             self.work += last_lap[-1]
 
         self.status = EventStatus.Stopped
+        return len(self.laps)
 
 
 # https://github.com/numpy/numpy/blob/main/numpy/core/numeric.py
