@@ -63,3 +63,11 @@ Insert_event: Final = """
 Get_last_event: Final = """
     SELECT * FROM event ORDER BY started DESC LIMIT 1;
 """
+
+Update_laps: Final = """
+    UPDATE event SET status=:status, laps=:laps, work=:work WHERE id=:id;
+"""
+
+Delete_event: Final = """
+    DELETE FROM event WHERE id=?;
+"""

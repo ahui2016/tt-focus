@@ -5,8 +5,7 @@ from pathlib import Path
 from appdirs import AppDirs
 from result import Err, Ok, Result
 from typing import Final, Iterable, TypeAlias
-from . import stmt
-from . import model
+from . import stmt, model
 from .model import (
     Config,
     ConfigName,
@@ -144,3 +143,21 @@ def get_last_event(conn: Conn) -> Result[Event, MultiText]:
         return Err(err)
 
     return Ok(model.Event(dict(row)))
+
+
+def update_laps(conn: Conn, event: Event) -> None:
+    data = event.to_dict()
+    conn_update(
+        conn,
+        stmt.Update_laps,
+        dict(
+            status=data["status"],
+            laps=data["laps"],
+            work=data["work"],
+            id=data["id"],
+        ),
+    ).unwrap()
+
+
+def delete_event(conn: Conn, event_id: str) -> None:
+    conn_update(conn, stmt.Delete_event, (event_id,)).unwrap()

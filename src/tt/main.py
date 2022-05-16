@@ -253,7 +253,7 @@ short_help = MultiText(
 def start(ctx: click.Context, name: str):
     """List out task or events. 任务列表或事件列表。"""
     with connect() as conn:
-        r = util.add_new_event(conn, name)
+        r = util.event_start(conn, name)
         print(r[lang])  # type: ignore
 
     ctx.exit()

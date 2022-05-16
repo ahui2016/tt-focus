@@ -1,10 +1,11 @@
 import sqlite3
+from datetime import timedelta
 from typing import TypeAlias
 import arrow
 from result import Result, Err, Ok
 
-from . import db
-from .model import Config, AppConfig, Task, MultiText, Event, EventStatus, OK
+from . import db, model
+from .model import Config, AppConfig, Task, MultiText, Event, EventStatus, OK, UnknownReturn
 
 Conn: TypeAlias = sqlite3.Connection
 
@@ -76,7 +77,19 @@ def check_last_event_stopped(conn: Conn) -> Result[str, MultiText]:
     return OK
 
 
-def add_new_event(conn: Conn, name: str) -> MultiText:
+def format_date(t: int) -> str:
+    return arrow.get(t).format("YYYY-MM-DD")
+
+
+def format_time(t: int) -> str:
+    return arrow.get(t).format("HH:mm:ss")
+
+
+def format_time_len(s: int) -> str:
+    return str(timedelta(s))
+
+
+def event_start(conn: Conn, name: str) -> MultiText:
     err = check_last_event_stopped(conn).err()
     if err is not None:
         return err
@@ -91,7 +104,7 @@ def add_new_event(conn: Conn, name: str) -> MultiText:
     task = r.unwrap()
     event = Event({"task_id": task.id})
     db.insert_event(conn, event)
-    started = arrow.get(event.started).format("HH:mm:ss")
+    started = format_time(event.started)
 
     if task.alias:
         return MultiText(
@@ -105,6 +118,35 @@ def add_new_event(conn: Conn, name: str) -> MultiText:
         )
 
 
+def get_last_event(conn: Conn) -> Result[Event, MultiText]:
+    match db.get_last_event(conn):
+        case Err(err):
+            return Err(err)
+        case Ok(event):
+            if event.status is EventStatus.Stopped:
+                err = MultiText(
+                    cn="当前无正在计时的事件，可使用 'tt start TASK' 启动一个事件。",
+                    en="No running event. Try 'tt start Task' to make an event.",
+                )
+                return Err(err)
+            else:
+                return Ok(event)
+        case _:
+            raise UnknownReturn
+
+
+def event_split(conn: Conn, cfg: Config, lang: str) -> None:
+    r = get_last_event(conn)
+    if r.is_err():
+        print(r.err()[lang])  # type: ignore
+        return
+
+    event: Event = r.unwrap()
+    event.split(cfg)
+    db.update_laps(conn, event)
+    show_status(conn, lang)
+
+
 def show_stopped_status(lang: str) -> None:
     info = MultiText(
         cn="当前无正在计时的任务，可使用 'tt list -e' 查看最近的事件。",
@@ -114,13 +156,37 @@ def show_stopped_status(lang: str) -> None:
 
 
 def show_running_status(event: Event, task: Task, lang: str) -> None:
-    date = arrow.get(event.started).format("YYYY-MM-DD")
+    date = format_date(event.started)
     status = f"(id:{event.id}) {date} **{event.status.name.lower()}**"
+    start = format_time(event.started)
+    now = format_time(model.now())
+    work = format_time_len(event.work)
 
     header = MultiText(
         cn=f"任务 | {task}\n事件 | {status}", en=f"Task | {task}\nEvent| {status}"
     )
-    total = MultiText(cn=f"合计 | ", en=f"")
+    total = MultiText(
+        cn=f"合计  {start} -> {now} [{work}]",
+        en=f"total  {start} -> {now} [{work}]",
+    )
+    print(f"{header[lang]}\n\n{total[lang]}\n--------------------------------------")  # type: ignore
+
+    for lap in event.laps:
+        print(
+            f"{lap[0]}  {format_time(lap[1])} -> {format_time(lap[2])} [{format_time_len(lap[3])}]"
+        )
+
+    footer_running = MultiText(
+        cn="可接受命令: pause/split/stop", en="Waiting for pause/split/stop"
+    )
+    footer_pausing = MultiText(
+        cn="可接受命令: resume/stop", en="Waiting for resume/stop"
+    )
+    if event.status is EventStatus.Running:
+        print(footer_running[lang])  # type: ignore
+    else:
+        print(footer_pausing[lang])  # type: ignore
+    print()
 
 
 def show_status(conn: Conn, lang: str) -> None:

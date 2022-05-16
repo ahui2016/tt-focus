@@ -1,8 +1,6 @@
 from typing import Final
 import pytest
-from .. import stmt
-from .. import model
-from .. import db
+from .. import stmt, model, db
 
 
 cfg_keys = ("split_min", "pause_min", "pause_max")

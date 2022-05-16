@@ -191,8 +191,8 @@ class TestEvent:
         """模拟执行 resume/stop 后事件包含零个小节的情况。"""
         task = model.new_task({"name": "bbb"}).unwrap()
         cfg = model.default_cfg()
-        n = cfg['split_min']
-        n2 = cfg['pause_min']
+        n = cfg["split_min"]
+        n2 = cfg["pause_min"]
         a = Event({"task_id": task.id})
         a = go_back_n_minutes(a, n)  # 模拟时间经过了 n 分钟
         a.pause(cfg)
@@ -207,7 +207,7 @@ class TestEvent:
         b = Event({"task_id": task.id})
         b = go_back_n_minutes(b, n)  # 模拟时间经过了 n 分钟
         b.pause(cfg)
-        n3 = cfg['pause_max']
+        n3 = cfg["pause_max"]
         b = go_back_n_minutes(b, n3)  # 模拟时间经过了 n3 分钟
         assert b.resume(cfg) == 0
         assert b.status == EventStatus.Stopped

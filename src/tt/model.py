@@ -9,7 +9,7 @@ import msgpack
 
 
 OK: Final = Ok("OK")
-# UnknownReturn: Final = Exception("Unknown-return")
+UnknownReturn: Final = Exception("Unknown-return")
 
 DateFormat: Final = "YYYY-MM-DD"
 TimeFormat: Final = "HH:mm:ss"
@@ -21,6 +21,7 @@ NameForbidPattern: Final = re.compile(r"[^_0-9a-zA-Z\-]")
 
 
 def now() -> int:
+    """timestamp"""
     return arrow.now().int_timestamp
 
 
