@@ -99,6 +99,7 @@ class TestEvent:
         len1 = 6
         a = Event({"task_id": task.id})
         a = go_back_n_minutes(a, len1)
+        # 假设 6 分钟前启动了一个事件，现在执行 split, 产生一个新的小节。
         a.split(cfg)
         assert a.status == EventStatus.Running
         assert (a.work - len1 * 60) < 2  # 允许有一秒误差
@@ -108,6 +109,7 @@ class TestEvent:
         a = go_back_n_minutes(a, len2)
         old_laps = a.laps
         old_work = a.work
+        # 假设经过 3 分钟后，再执行一次 split。
         a.split(cfg)
         assert a.status == EventStatus.Running
         assert old_work == a.work
@@ -115,21 +117,75 @@ class TestEvent:
 
         len3 = 4
         a = go_back_n_minutes(a, len3)
+        # 假设又经过了 4 分钟后，执行 pause。
         a.pause(cfg)
         assert a.status == EventStatus.Pausing
         length = len1 + len2 + len3  # 由于上一次的 split 操作被忽略，计时未中断。
         assert (a.work - length * 60) < 2  # 允许有一秒误差
         assert len(a.laps) == 3
 
+        # pausing 状态下不可执行 split
         with pytest.raises(
             RuntimeError, match=r"Only running event can be split"
         ):
             a.split(cfg)
 
+        # pausing 状态下不可执行 pause
         with pytest.raises(
             RuntimeError, match=r"Only running event can be paused"
         ):
             a.pause(cfg)
+
+        len4 = 2
+        a = go_back_n_minutes(a, len4)
+        old_laps = a.laps
+        old_work = a.work
+        # 假设又经过了 2 分钟后，执行 resume。
+        a.resume(cfg)
+        assert a.status == EventStatus.Running
+        assert old_work == a.work
+        assert len(a.laps) == 3  # 时长小于 pause-min, 上一个休息小节无效。
+        assert old_laps[:2] == a.laps[:2]
+        assert old_laps[-1][0] == LapName.Pause.name
+        assert a.laps[-1][0] == LapName.Split.name
+
+        # running 状态下不可执行 resume
+        with pytest.raises(
+            RuntimeError, match=r"Only pausing event can be resumed"
+        ):
+            a.resume(cfg)
+
+        # 模拟一个工作了 7 分钟的小节
+        len5 = 7
+        a = go_back_n_minutes(a, len5)
+        a.pause(cfg)
+
+        # 模拟一个休息了 30 分钟的小节
+        len6 = 30
+        a = go_back_n_minutes(a, len6)
+        a.resume(cfg)
+
+        # 模拟一个工作了 60 分钟的小节
+        len7 = 60
+        a = go_back_n_minutes(a, len7)
+        a.pause(cfg)
+        assert a.status == EventStatus.Pausing
+        length = len1 + len2 + len3 + len5 + len7  # len4 被忽略, len6 是休息时间。
+        assert (a.work - length * 60) < 2  # 允许有一秒误差。
+        assert a.laps[3][0] == LapName.Pause.name  # len6 对应第 4 个小节，是休息小节。
+        assert len(a.laps) == 6  # 一共 6 个小节，第 6 个小节未结束。
+
+        # 模拟一个休息了 90 分钟的小节
+        len6 = 90
+        a = go_back_n_minutes(a, len6)
+        a.resume(cfg)
+        # 休息时间超过上限，导致事件自动结束。
+        assert a.status == EventStatus.Stopped
+        length = len1 + len2 + len3 + len5 + len7  # len4 被忽略, len6 是休息时间。
+        assert (a.work - length * 60) < 2  # 允许有一秒误差。
+        assert a.laps[3][0] == LapName.Pause.name  # len6 对应第 4 个小节，是休息小节。
+        assert len(a.laps) == 5  # 一共 5 个小节，因为第 6 个小节超过上限被删除。
+        print(a)
 
 
 def test_base_repr():

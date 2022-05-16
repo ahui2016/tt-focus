@@ -208,7 +208,7 @@ class Event:
     def resume(self, cfg: Config) -> None:
         if self.status is not EventStatus.Pausing:
             raise RuntimeError(
-                f"Only 'pausing' event can be resumed. Current status: {self.status}"
+                f"Only pausing event can be resumed. Current status: {self.status}"
             )
 
         # 上一个小节结束。
