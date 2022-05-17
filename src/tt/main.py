@@ -258,22 +258,10 @@ short_help = MultiText(
 @click.pass_context
 def start(ctx: click.Context, task: str | None):
     """List out task or events. 任务列表或事件列表。"""
-    conn = connect()
+    with connect() as conn:
+        info = util.event_start(conn, task)
+        print(info.str(lang))
 
-    if task is None:
-        r = util.get_last_task(conn)
-        if r.is_err():
-            print(r.unwrap_err().str(lang))
-            conn.close()
-            ctx.exit()
-        else:
-            task = r.unwrap()
-
-    info = util.event_start(conn, task)
-    print(info.str(lang))
-
-    conn.commit()
-    conn.close()
     ctx.exit()
 
 
@@ -288,6 +276,67 @@ def status(ctx: click.Context):
     """Status of the current event. 查看正在计时的事件的状态。"""
     with connect() as conn:
         util.show_status(conn, lang)
+
+    ctx.exit()
+
+
+short_help = MultiText(
+    cn="分割当前事件（产生一个新的工作小节）。", en="Split the current event (create a new lap)."
+)
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.pass_context
+def split(ctx: click.Context):
+    """Split the current event (create a new lap).
+
+    分割当前事件（产生一个新的计时小节）。
+    """
+    with connect() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+        util.event_split(conn, cfg, lang)
+
+    ctx.exit()
+
+
+short_help = MultiText(
+    cn="暂停当前工作（产生一个新的休息小节）。", en="Pause the current event (take a break)."
+)
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.pass_context
+def pause(ctx: click.Context):
+    """Pause the current event (take a break).
+
+    暂停当前工作（产生一个新的休息小节）。
+    """
+    with connect() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+        util.event_pause(conn, cfg, lang)
+
+    ctx.exit()
+
+
+short_help = MultiText(cn="恢复工作（从休息回到工作）。", en="Resume the current event.")
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.pass_context
+def resume(ctx: click.Context):
+    """Resume the current event.
+
+    恢复工作（从休息回到工作）。
+    """
+    with connect() as conn:
+        cfg = db.get_cfg(conn).unwrap()
+        util.event_resume(conn, cfg, lang)
 
     ctx.exit()
 

@@ -109,10 +109,17 @@ def get_last_task(conn: Conn) -> Result[str, MultiText]:
             raise UnknownReturn
 
 
-def event_start(conn: Conn, name: str) -> MultiText:
+def event_start(conn: Conn, name: str | None) -> MultiText:
     err = check_last_event_stopped(conn).err()
     if err is not None:
         return err
+
+    if name is None:
+        task = get_last_task(conn)
+        if task.is_err():
+            return task.unwrap_err()
+        else:
+            name = task.unwrap()
 
     r = db.get_task_by_name(conn, name)
     if r.is_err():
@@ -155,38 +162,72 @@ def get_last_event(conn: Conn) -> Result[Event, MultiText]:
             raise UnknownReturn
 
 
-def event_split(conn: Conn, cfg: Config, lang: str) -> None:
+def event_operate(conn: Conn, cfg: Config, lang: str, op: str) -> Event | None:
     r = get_last_event(conn)
     if r.is_err():
         print(r.unwrap_err().str(lang))
-        return
+        return None
 
     event: Event = r.unwrap()
-    event.split(cfg)
-    db.update_laps(conn, event)
-    show_status(conn, lang)
+    match op:
+        case "split":
+            event.split(cfg)
+        case "pause":
+            event.pause(cfg)
+        case "resume":
+            event.resume(cfg)
+        case "stop":
+            event.stop(cfg)
+        case _:
+            raise KeyError(f"Unknown operator: {op}")
 
-
-def event_stop(conn: Conn, cfg: Config, lang: str) -> None:
-    r = get_last_event(conn)
-    if r.is_err():
-        print(r.unwrap_err().str(lang))
-        return
-
-    event: Event = r.unwrap()
-    event.stop(cfg)
     db.update_laps(conn, event)
     show_running_status(conn, event, None, lang)
+    return event
 
+
+def event_split(conn: Conn, cfg: Config, lang: str) -> None:
+    event_operate(conn, cfg, lang, "split")
+
+
+def event_pause(conn: Conn, cfg: Config, lang: str) -> None:
+    event_operate(conn, cfg, lang, "pause")
+
+
+def del_if_below_min(conn: Conn, cfg: Config, lang: str, event: Event) -> None:
     if event.work <= cfg["split_min"]:
         info = MultiText(
             cn="以上所示事件，由于总工作时长小于下限，已自动删除。\n"
             + "可使用命令 'tt help min' 查看关于时长下限的说明。\n",
-            en="The event below is automatically deleted.\n"
+            en="The event above is automatically deleted.\n"
             + "Run 'tt help min' to get more information.\n",
         )
         print(info.str(lang))
         db.delete_event(conn, event.id)
+
+
+def event_resume(conn: Conn, cfg: Config, lang: str) -> None:
+    event = event_operate(conn, cfg, lang, "resume")
+    if event is None:
+        return
+
+    if event.status is EventStatus.Stopped:
+        del_if_below_min(conn, cfg, lang, event)
+        info = MultiText(
+            cn="以上所示事件休息时长大于上限，已自动结束，并自动启动了新事件。\n"
+            + "可使用命令 'tt help max' 查看关于时长上限的说明。\n",
+            en="The event above is automatically stopped, and an new event is started.\n"
+            + "Run 'tt help max' to get more information.\n",
+        )
+        print(info.str(lang))
+        info = event_start(conn, None)
+        print(info.str(lang))
+
+
+def event_stop(conn: Conn, cfg: Config, lang: str) -> None:
+    event = event_operate(conn, cfg, lang, "stop")
+    if event:
+        del_if_below_min(conn, cfg, lang, event)
 
 
 def show_stopped_status(lang: str) -> None:
