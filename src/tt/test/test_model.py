@@ -191,6 +191,14 @@ class TestEvent:
         assert len(a.laps) == 5  # 一共 5 个小节，因为第 6 个小节超过上限被删除。
         print(a)
 
+        a_dict = a.to_dict()
+        assert a_dict['id'] == a.id
+        assert a_dict['task_id'] == a.task_id
+        assert a_dict['started'] == a.started
+        assert a_dict['status'] == a.status.name
+        assert a_dict['laps'] == model.pack(a.laps)
+        assert a_dict['work'] == a.work
+
     def test_stop_with_no_laps(self):
         """模拟执行 resume/stop 后事件包含零个小节的情况。"""
         task = model.new_task({"name": "bbb"}).unwrap()

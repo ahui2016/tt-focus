@@ -10,10 +10,10 @@ import msgpack
 
 OK: Final = Ok("OK")
 UnknownReturn: Final = Exception("Unknown-return")
+RecentItemsMax: Final[int] = 9
 
 DateFormat: Final = "YYYY-MM-DD"
 TimeFormat: Final = "HH:mm:ss"
-
 ConfigName: Final = "meta-config"
 
 NameForbidPattern: Final = re.compile(r"[^_0-9a-zA-Z\-]")
@@ -150,7 +150,7 @@ class Event:
             "started": self.started,
             "status": self.status.name,
             "laps": pack(self.laps),
-            "work": 0,
+            "work": self.work,
         }
 
     def close_last_lap(self) -> Lap:

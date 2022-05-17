@@ -229,6 +229,7 @@ def add(ctx: click.Context, name: str, alias: str):
 
 
 short_help = MultiText(cn="任务列表或事件列表。", en="List out task or events.")
+help_recent_events = MultiText(cn="最近事件列表。", en="List out recent events.")
 
 
 @cli.command(
@@ -236,12 +237,22 @@ short_help = MultiText(cn="任务列表或事件列表。", en="List out task or
     short_help=short_help.str(lang),
     name="list",
 )
+@click.option(
+    "events",
+    "-e",
+    "--recent-events",
+    is_flag=True,
+    help=help_recent_events.str(lang),
+)
 @click.pass_context
-def list_command(ctx: click.Context):
+def list_command(ctx: click.Context, events: bool):
     """List out task or events. 任务列表或事件列表。"""
     with connect() as conn:
-        tasks = db.get_all_task(conn)
-        util.show_tasks(tasks, lang)
+        if events:
+            util.show_recent_events(conn, lang)
+        else:
+            tasks = db.get_all_task(conn)
+            util.show_tasks(tasks, lang)
 
     ctx.exit()
 

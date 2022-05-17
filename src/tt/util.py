@@ -14,6 +14,7 @@ from .model import (
     EventStatus,
     OK,
     UnknownReturn,
+    RecentItemsMax,
 )
 
 Conn: TypeAlias = sqlite3.Connection
@@ -295,3 +296,26 @@ def show_status(conn: Conn, lang: str) -> None:
                 show_stopped_status(lang)
             else:
                 show_running_status(conn, event, task, lang)
+
+
+def show_recent_events(conn: Conn, lang: str) -> None:
+    r = db.get_recent_events(conn, RecentItemsMax)
+    if r.is_err():
+        print(r.unwrap_err().str(lang))
+        return
+
+    print()
+    events = r.unwrap()
+    for e in events:
+        start = format_date(e.started)
+        work = format_time_len(e.work)
+        t = db.get_task_by_id(conn, e.task_id).unwrap()
+        if t.alias:
+            print(
+                f"* id: {e.id}, {t.name} ({t.alias}), {start} [{work}]",
+            )
+        else:
+            print(
+                f"* id: {e.id}, {t.name}, {start} [{work}]",
+            )
+    print()

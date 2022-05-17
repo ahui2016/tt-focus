@@ -13,6 +13,7 @@ from .model import (
     Task,
     MultiText,
     Event,
+    UnknownReturn,
 )
 
 Conn: TypeAlias = sqlite3.Connection
@@ -135,15 +136,26 @@ def insert_event(conn: Conn, event: Event) -> None:
 
 
 def get_last_event(conn: Conn) -> Result[Event, MultiText]:
-    row = conn.execute(stmt.Get_last_event).fetchone()
-    if row is None:
+    match get_recent_events(conn, 1):
+        case Err(err):
+            return Err(err)
+        case Ok(events):
+            return Ok(events[0])
+        case _:
+            raise UnknownReturn
+
+
+def get_recent_events(conn: Conn, n: int) -> Result[list[Event], MultiText]:
+    rows = conn.execute(stmt.Get_recent_events, (n,)).fetchall()
+    if rows is None:
         err = MultiText(
             cn="没有任何事件数据，可使用 'tt start TASK' 启动一个事件。",
             en="No event. Try 'tt start TASK' to make an event.",
         )
         return Err(err)
 
-    return Ok(model.Event(dict(row)))
+    events = [Event(dict(row)) for row in rows]
+    return Ok(events)
 
 
 def update_laps(conn: Conn, event: Event) -> None:
