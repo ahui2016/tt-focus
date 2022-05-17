@@ -59,7 +59,7 @@ def show_tasks(tasks: list[Task], lang: str) -> None:
         cn="尚未添加任何任务类型，可使用 'tt add NAME' 添加任务类型。",
         en="There is no any task type. Use 'tt add NAME' to add a task.",
     )
-    header = MultiText(cn="\n[任务类型列表]\n", en="\n[Task types]\n")
+    header = MultiText(cn="\n[任务类型列表]\n", en="\nTask types:\n")
     if not tasks:
         print(no_task.str(lang))
         return
@@ -245,6 +245,7 @@ def event_resume(conn: Conn, cfg: Config, lang: str) -> None:
         print(info.str(lang))
         info = event_start(conn, None)
         print(info.str(lang))
+        print()
 
 
 def event_stop(conn: Conn, cfg: Config, lang: str) -> None:
@@ -326,18 +327,26 @@ def show_recent_events(conn: Conn, lang: str) -> None:
         print(r.unwrap_err().str(lang))
         return
 
-    print()
+    print("\nRecent events:\n")
     events = r.unwrap()
     for e in events:
         start = format_date(e.started)
         work = format_time_len(e.work)
         t = db.get_task_by_id(conn, e.task_id).unwrap()
+
+        if e.status is EventStatus.Running:
+            status = " **running**"
+        elif e.status is EventStatus.Pausing:
+            status = " **pausing**"
+        else:
+            status = ""
+
         if t.alias:
             print(
-                f"* id: {e.id}, {t.name} ({t.alias}), {start} [{work}]",
+                f"* id: {e.id}, {t.name} ({t.alias}), {start} [{work}]{status}",
             )
         else:
             print(
-                f"* id: {e.id}, {t.name}, {start} [{work}]",
+                f"* id: {e.id}, {t.name}, {start} [{work}]{status}",
             )
     print()
