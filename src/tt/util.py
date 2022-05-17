@@ -163,6 +163,25 @@ def get_last_event(conn: Conn) -> Result[Event, MultiText]:
             raise UnknownReturn
 
 
+def check_command(op: str, status: EventStatus, lang: str) -> bool:
+    """检查 op 与 status 是否匹配，不匹配则返回 True。"""
+    alert = MultiText(
+        cn=f"当前事件的状态是 {status.name}, 不可使用 {op} 命令。",
+        en=f"The current event is '{status.name}', cannot use the '{op}' command.",
+    )
+    err = False
+    if status is EventStatus.Running and op == "resume":
+        err = True
+    elif status is EventStatus.Pausing and op == "pause":
+        err = True
+    elif status is EventStatus.Pausing and op == "split":
+        err = True
+
+    if err:
+        print(alert.str(lang))
+    return err
+
+
 def event_operate(conn: Conn, cfg: Config, lang: str, op: str) -> Event | None:
     r = get_last_event(conn)
     if r.is_err():
@@ -170,6 +189,9 @@ def event_operate(conn: Conn, cfg: Config, lang: str, op: str) -> Event | None:
         return None
 
     event: Event = r.unwrap()
+    if check_command(op, event.status, lang):
+        return None
+
     match op:
         case "split":
             event.split(cfg)
