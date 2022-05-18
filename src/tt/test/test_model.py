@@ -225,6 +225,21 @@ class TestEvent:
         assert b.status == EventStatus.Stopped
         assert b.work == 0
 
+    def test_stop_when_pausing(self):
+        """模拟结束时最后一个小节是休息小节的情况。"""
+        task = model.new_task({"name": "bbb"}).unwrap()
+        cfg = model.default_cfg()
+        a = Event({"task_id": task.id})
+        n = 30
+        a = go_back_n_minutes(a, n)  # 模拟时间经过了 n 分钟
+        a.pause(cfg)
+        # 模拟时间经过了不超过上下限的时间，但由于最后一个小节是休息，因此也会被删除。
+        a = go_back_n_minutes(a, cfg["pause_max"] - 1)
+        a.stop(cfg)
+        assert a.status == EventStatus.Stopped
+        assert (a.work - n * 60) < 2  # 允许有一秒误差。
+        assert len(a.laps) == 1
+
 
 def test_base_repr():
     a = 123456

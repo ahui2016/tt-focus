@@ -169,13 +169,24 @@ def check_command(op: str, status: EventStatus, lang: str) -> bool:
         cn=f"当前事件的状态是 {status.name}, 不可使用 {op} 命令。",
         en=f"The current event is '{status.name}', cannot use the '{op}' command.",
     )
+    when_running = MultiText(
+        cn="\n可使用: split/pause/stop",
+        en="\nAvailable commands: split/pause/stop",
+    )
+    when_pausing = MultiText(
+        cn="\n可使用: resume/stop", en="\nAvailable commands: resume/stop"
+    )
+
     err = False
     if status is EventStatus.Running and op == "resume":
         err = True
+        alert.append(when_running)
     elif status is EventStatus.Pausing and op == "pause":
         err = True
+        alert.append(when_pausing)
     elif status is EventStatus.Pausing and op == "split":
         err = True
+        alert.append(when_pausing)
 
     if err:
         print(alert.str(lang))
@@ -256,8 +267,8 @@ def event_stop(conn: Conn, cfg: Config, lang: str) -> None:
 
 def show_stopped_status(lang: str) -> None:
     info = MultiText(
-        cn="当前无正在计时的事件，可使用 'tt list -e' 查看最近的事件。",
-        en="No event running. Try 'tt list -e' to list out recent events.",
+        cn="当前无正在计时的事件，可使用 'tt list' 查看最近的事件。",
+        en="No event running. Try 'tt list' to list out recent events.",
     )
     print(info.str(lang))
 
@@ -327,7 +338,9 @@ def show_recent_events(conn: Conn, lang: str) -> None:
         print(r.unwrap_err().str(lang))
         return
 
-    print("\nRecent events:\n")
+    header = MultiText(cn="\n[最近的事件]\n", en="\nRecent events:\n")
+    print(header.str(lang))
+
     events = r.unwrap()
     for e in events:
         start = format_date(e.started)

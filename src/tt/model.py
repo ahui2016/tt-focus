@@ -71,6 +71,10 @@ class MultiText:
     def str(self, lang: str) -> str:
         return asdict(self)[lang]
 
+    def append(self, other) -> None:
+        self.cn += other.cn
+        self.en += other.en
+
 
 class EventStatus(Enum):
     Running = auto()
@@ -245,24 +249,18 @@ class Event:
         # 上一个小节结束。
         last_lap = self.close_last_lap()
 
-        # 如果上个小节的长度小于下限，或大于上限，则上个小节被视为无效 (直接删除)。
+        # 如果上个小节是休息小节，或工作时长小于下限，则上个小节被视为无效 (直接删除)。
         if (
+            self.status is EventStatus.Pausing
+            or
             (
                 self.status is EventStatus.Running
                 and last_lap[-1] <= cfg["split_min"] * 60
             )
-            or (
-                self.status is EventStatus.Pausing
-                and last_lap[-1] <= cfg["pause_min"] * 60
-            )
-            or (
-                self.status is EventStatus.Pausing
-                and last_lap[-1] > cfg["pause_max"] * 60
-            )
         ):
             self.laps = self.laps[:-1]
         elif self.status is EventStatus.Running:
-            # 如果不属于以上特殊情况，并且上个小节是 running 状态，则需要统计工作时长。
+            # 如果不属于以上特殊情况，并且上个小节是 running 状态，则需要累计工作时长。
             self.work += last_lap[-1]
 
         self.status = EventStatus.Stopped
