@@ -216,7 +216,7 @@ def event_operate(conn: Conn, cfg: Config, lang: str, op: str) -> Event | None:
             raise KeyError(f"Unknown operator: {op}")
 
     db.update_laps(conn, event)
-    show_running_status(conn, event, None, lang)
+    show_event_details(conn, event, None, lang)
     return event
 
 
@@ -273,7 +273,7 @@ def show_stopped_status(lang: str) -> None:
     print(info.str(lang))
 
 
-def show_running_status(
+def show_event_details(
     conn: Conn, event: Event, task: Task | None, lang: str
 ) -> None:
     if task is None:
@@ -309,7 +309,10 @@ def show_running_status(
     footer_pausing = MultiText(
         cn="可接受命令: resume/stop", en="Waiting for resume/stop"
     )
-    footer_stopped = MultiText(cn="该事件已结束。", en="The event above has stopped.")
+    footer_stopped = MultiText(
+        cn=f"该事件已结束。生产效率/集中力: {event.productivity()}",
+        en=f"The event above has stopped. Productivity: {event.productivity()}"
+    )
     match event.status:
         case EventStatus.Running:
             print(footer_running.str(lang))
@@ -329,7 +332,7 @@ def show_status(conn: Conn, lang: str) -> None:
             if event.status is EventStatus.Stopped:
                 show_stopped_status(lang)
             else:
-                show_running_status(conn, event, task, lang)
+                show_event_details(conn, event, task, lang)
 
 
 def show_recent_events(conn: Conn, lang: str) -> None:
@@ -352,14 +355,9 @@ def show_recent_events(conn: Conn, lang: str) -> None:
         elif e.status is EventStatus.Pausing:
             status = " **pausing**"
         else:
-            status = ""
+            status = f" {e.productivity()}"
 
-        if t.alias:
-            print(
-                f"* id: {e.id}, {t.name} ({t.alias}), {start} [{work}]{status}",
-            )
-        else:
-            print(
-                f"* id: {e.id}, {t.name}, {start} [{work}]{status}",
-            )
+        alias = f" ({t.alias})" if t.alias else ""
+
+        print(f"* id: {e.id}, {t.name}{alias}, {start} [{work}]{status}")
     print()

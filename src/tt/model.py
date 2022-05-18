@@ -157,6 +157,11 @@ class Event:
             "work": self.work,
         }
 
+    def productivity(self) -> str:
+        total = self.laps[-1][-2] - self.started
+        ratio = self.work / total
+        return f"{round(ratio * 100)}%"
+
     def close_last_lap(self) -> Lap:
         """上一个小节结束，填写结束时间与小节长度。"""
         last_lap = self.laps[-1]
@@ -250,13 +255,9 @@ class Event:
         last_lap = self.close_last_lap()
 
         # 如果上个小节是休息小节，或工作时长小于下限，则上个小节被视为无效 (直接删除)。
-        if (
-            self.status is EventStatus.Pausing
-            or
-            (
-                self.status is EventStatus.Running
-                and last_lap[-1] <= cfg["split_min"] * 60
-            )
+        if self.status is EventStatus.Pausing or (
+            self.status is EventStatus.Running
+            and last_lap[-1] <= cfg["split_min"] * 60
         ):
             self.laps = self.laps[:-1]
         elif self.status is EventStatus.Running:
