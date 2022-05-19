@@ -15,6 +15,7 @@ from .model import (
     OK,
     UnknownReturn,
     RecentItemsMax,
+    Lap, LapName,
 )
 
 Conn: TypeAlias = sqlite3.Connection
@@ -216,7 +217,7 @@ def event_operate(conn: Conn, cfg: Config, lang: str, op: str) -> Event | None:
             raise KeyError(f"Unknown operator: {op}")
 
     db.update_laps(conn, event)
-    show_event_details(conn, event, None, lang)
+    show_event_details(conn, event, lang)
     return event
 
 
@@ -273,11 +274,8 @@ def show_stopped_status(lang: str) -> None:
     print(info.str(lang))
 
 
-def show_event_details(
-    conn: Conn, event: Event, task: Task | None, lang: str
-) -> None:
-    if task is None:
-        task = db.get_task_by_id(conn, event.task_id).unwrap()
+def show_event_details(conn: Conn, event: Event, lang: str) -> None:
+    task = db.get_task_by_id(conn, event.task_id).unwrap()
     date = format_date(event.started)
     status = f"(id:{event.id}) {date} **{event.status.name.lower()}**"
     start = format_time(event.started)
@@ -311,7 +309,7 @@ def show_event_details(
     )
     footer_stopped = MultiText(
         cn=f"该事件已结束。生产效率/集中力: {event.productivity()}",
-        en=f"The event above has stopped. Productivity: {event.productivity()}",
+        en=f"The event has stopped. Productivity: {event.productivity()}",
     )
     match event.status:
         case EventStatus.Running:
@@ -332,11 +330,10 @@ def show_status(conn: Conn, lang: str, event_id: str | None = None) -> None:
         case Err(err):
             print(err.str(lang))
         case Ok(event):
-            task = db.get_task_by_id(conn, event.task_id).unwrap()
             if event_id is None and event.status is EventStatus.Stopped:
                 show_stopped_status(lang)
             else:
-                show_event_details(conn, event, task, lang)
+                show_event_details(conn, event, lang)
 
 
 def show_recent_events(conn: Conn, lang: str) -> None:
@@ -365,3 +362,43 @@ def show_recent_events(conn: Conn, lang: str) -> None:
 
         print(f"* id: {e.id}, {t.name}{alias}, {start} [{work}]{status}")
     print()
+
+
+def sum_event_work(laps: tuple[Lap, ...]) -> int:
+    work = 0
+    for lap in laps:
+        if LapName[lap[0]] == LapName.Split:
+            work += lap[-1]
+    return work
+
+
+def set_last_work(conn: Conn, n: int, event_id: str | None, lang: str) -> None:
+    """修改指定事件的最后一个小节的工作时长"""
+    not_stop = MultiText(
+        cn="该事件尚未结束，不能修改未结束的事件。",
+        en="Cannot modify. The event has not stopped yet.",
+    )
+    if event_id is None:
+        r = db.get_last_event(conn)
+    else:
+        r = db.get_event_by_id(conn, event_id)
+    match r:
+        case Err(err):
+            print(err.str(lang))
+        case Ok(event):
+            if event.status is not EventStatus.Stopped:
+                print(not_stop.str(lang))
+                return
+
+            # 只要是已结束的事件，它的最后一个小节就一定是工作小节。
+            last_lap = event.laps[-1]
+            last_work = last_lap[-1]
+            work = n * 60
+            last_lap = (last_lap[0], last_lap[1], last_lap[1] + work, work)
+            event.laps = event.laps[:-1] + (last_lap,)
+            event.work = sum_event_work(event.laps)
+            db.update_laps(conn, event)
+            show_event_details(conn, event, lang)
+            print(
+                f"{format_time_len(last_work)} => {format_time_len(event.laps[-1][-1])}\n"
+            )

@@ -89,12 +89,6 @@ def cli(ctx: click.Context):
 # 以下是子命令
 
 
-help_set_db_folder = MultiText(
-    cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
-    en="Specify a folder for the database (tt-focus.db).",
-)
-
-
 def update_db_path(new_db_path: Path, success: MultiText):
     app_cfg["db_path"] = new_db_path.resolve().__str__()
     db.write_cfg_file(app_cfg)
@@ -141,6 +135,15 @@ help_text = MultiText(
     cn="更改 tt-focus 的设置，或更改任务/事件的属性。",
     en="Change settings of tt-focus, or properties of a task/event.",
 )
+help_set_db_folder = MultiText(
+    cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
+    en="Specify a folder for the database (tt-focus.db).",
+)
+help_set_last_work = MultiText(
+    cn="修改指定事件的最后一个小节的工作时长。",
+    en="Modifies the working time of the last lap of an event.",
+)
+help_event_id = MultiText(cn="指定事件ID。", en="Specify an event-id.")
 
 
 @cli.command(
@@ -159,8 +162,21 @@ help_text = MultiText(
     type=click.Path(exists=True, file_okay=False),
     help=help_set_db_folder.str(lang),
 )
+@click.option("event_id", "-e", "--event", help=help_event_id.str(lang))
+@click.option(
+    "last_work",
+    "--last-work",
+    type=int,
+    help=help_set_last_work.str(lang),
+)
 @click.pass_context
-def set_command(ctx: click.Context, language: str, db_folder: str):
+def set_command(
+    ctx: click.Context,
+    language: str,
+    db_folder: str,
+    last_work: int,
+    event_id: str | None,
+):
     """Change settings of tt-focus, or properties of a task/event.
 
     更改 tt-focus 的设置，或更改任务/事件的属性。
@@ -175,6 +191,10 @@ def set_command(ctx: click.Context, language: str, db_folder: str):
     if db_folder:
         set_db_folder(db_folder)
         ctx.exit()
+
+    with connect() as conn:
+        if last_work:
+            util.set_last_work(conn, last_work, event_id, lang)
 
 
 short_help = MultiText(cn="新增任务类型。", en="Add a new type of task.")
@@ -249,7 +269,7 @@ help_text = MultiText(
     tt list rc163d  # Show details about the event
     
     tt list -t      # List out all task types
-    """
+    """,
 )
 help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all task types.")
 
