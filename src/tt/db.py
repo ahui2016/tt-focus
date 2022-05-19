@@ -135,6 +135,17 @@ def insert_event(conn: Conn, event: Event) -> None:
     conn_update(conn, stmt.Insert_event, event.to_dict()).unwrap()
 
 
+def get_event_by_id(conn: Conn, event_id: str) -> Result[Event, MultiText]:
+    row = conn.execute(stmt.Get_event_by_id, (event_id,)).fetchone()
+    if row is None:
+        err = MultiText(
+            cn=f"找不到此事件: {event_id}", en=f"Event Not Found: {event_id}"
+        )
+        return Err(err)
+
+    return Ok(Event(dict(row)))
+
+
 def get_last_event(conn: Conn) -> Result[Event, MultiText]:
     match get_recent_events(conn, 1):
         case Err(err):

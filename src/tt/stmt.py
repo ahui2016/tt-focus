@@ -60,6 +60,10 @@ Insert_event: Final = """
     VALUES (:id, :task_id, :started, :status, :laps, :work);
 """
 
+Get_event_by_id: Final = """
+    SELECT * FROM event WHERE id=?;
+"""
+
 Get_recent_events: Final = """
     SELECT * FROM event ORDER BY started DESC LIMIT ?;
 """

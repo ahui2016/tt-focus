@@ -228,13 +228,36 @@ def add(ctx: click.Context, name: str, alias: str):
     ctx.exit()
 
 
-short_help = MultiText(cn="任务列表或事件列表。", en="List out task or events.")
+short_help = MultiText(cn="任务列表或事件列表。", en="List out tasks or events.")
+help_text = MultiText(
+    cn="""任务列表或事件列表。
+    
+    示例：
+    
+    tt list         # 列出最近事件列表
+    
+    tt list rc163d  # 列出一个事件的详细内容
+    
+    tt list -t      # 列出全部任务类型
+    """,
+    en="""List out task or events.
+    
+    Examples:
+    
+    tt list         # List out recent events
+    
+    tt list rc163d  # Show details about the event
+    
+    tt list -t      # List out all task types
+    """
+)
 help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all task types.")
 
 
 @cli.command(
     context_settings=CONTEXT_SETTINGS,
     short_help=short_help.str(lang),
+    help=help_text.str(lang),
     name="list",
 )
 @click.option(
@@ -244,13 +267,16 @@ help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all t
     is_flag=True,
     help=help_list_tasks.str(lang),
 )
+@click.argument("event_id", required=False)
 @click.pass_context
-def list_command(ctx: click.Context, t: bool):
-    """List out task or events. 任务列表或事件列表。"""
+def list_command(ctx: click.Context, t: bool, event_id: str | None):
+    """List out tasks or events. 任务列表或事件列表。"""
     with connect() as conn:
         if t:
             tasks = db.get_all_task(conn)
             util.show_tasks(tasks, lang)
+        elif event_id:
+            util.show_status(conn, lang, event_id)
         else:
             util.show_recent_events(conn, lang)
 

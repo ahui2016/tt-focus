@@ -311,7 +311,7 @@ def show_event_details(
     )
     footer_stopped = MultiText(
         cn=f"该事件已结束。生产效率/集中力: {event.productivity()}",
-        en=f"The event above has stopped. Productivity: {event.productivity()}"
+        en=f"The event above has stopped. Productivity: {event.productivity()}",
     )
     match event.status:
         case EventStatus.Running:
@@ -323,13 +323,17 @@ def show_event_details(
     print()
 
 
-def show_status(conn: Conn, lang: str) -> None:
-    match db.get_last_event(conn):
+def show_status(conn: Conn, lang: str, event_id: str | None = None) -> None:
+    if event_id is None:
+        r = db.get_last_event(conn)
+    else:
+        r = db.get_event_by_id(conn, event_id)
+    match r:
         case Err(err):
             print(err.str(lang))
         case Ok(event):
             task = db.get_task_by_id(conn, event.task_id).unwrap()
-            if event.status is EventStatus.Stopped:
+            if event_id is None and event.status is EventStatus.Stopped:
                 show_stopped_status(lang)
             else:
                 show_event_details(conn, event, task, lang)
