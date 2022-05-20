@@ -158,6 +158,8 @@ class Event:
         }
 
     def productivity(self) -> str:
+        if len(self.laps) == 0:
+            return "N/A"
         total = self.laps[-1][-2] - self.started
         ratio = self.work / total
         return f"{round(ratio * 100)}%"
