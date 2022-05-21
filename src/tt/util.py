@@ -15,7 +15,8 @@ from .model import (
     OK,
     UnknownReturn,
     RecentItemsMax,
-    Lap, LapName,
+    Lap,
+    LapName,
 )
 
 Conn: TypeAlias = sqlite3.Connection
@@ -401,4 +402,36 @@ def set_last_work(conn: Conn, n: int, event_id: str | None, lang: str) -> None:
             show_event_details(conn, event, lang)
             print(
                 f"{format_time_len(last_work)} => {format_time_len(event.laps[-1][-1])}\n"
+            )
+
+
+def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
+    match db.get_task_by_name(conn, name):
+        case Err(_):
+            err = MultiText(cn=f"找不到任务类型: {name}", en=f"Not Found: {name}")
+            return Err(err)
+        case Ok(task):
+            return Ok(task)
+        case _:
+            raise UnknownReturn
+
+
+def set_task_alias(conn: Conn, alias: str, name: str, lang: str) -> None:
+    match db.get_task_by_name(conn, name):
+        case Err(_):
+            err = MultiText(cn=f"找不到任务类型: {name}", en=f"Not Found: {name}")
+            print(err.str(lang))
+        case Ok(task):
+            db.set_task_alias(conn, alias, name)
+            print(f"Task: {name} ({task.alias}) -> {name} ({alias})")
+
+
+def set_task_name(conn: Conn, new_name: str, old_name: str, lang: str) -> None:
+    match db.get_task_by_name(conn, old_name):
+        case Err(err):
+            print(err.str(lang))
+        case Ok(task):
+            db.set_task_name(conn, new_name, old_name)
+            print(
+                f"Task: {old_name} ({task.alias}) -> {new_name} ({task.alias})"
             )

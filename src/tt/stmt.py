@@ -55,6 +55,14 @@ Get_all_tasks: Final = """
     SELECT * FROM task ORDER BY name;
 """
 
+Set_task_alias: Final = """
+    UPDATE task SET alias=:alias WHERE name=:name;
+"""
+
+Set_task_name: Final = """
+    UPDATE task SET name=:new_name WHERE name=:old_name;
+"""
+
 Insert_event: Final = """
     INSERT INTO event (id, task_id, started, status, laps, work)
     VALUES (:id, :task_id, :started, :status, :laps, :work);

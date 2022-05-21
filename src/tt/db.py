@@ -131,6 +131,18 @@ def get_all_task(conn: Conn) -> list[Task]:
     return [model.new_task(dict(row)).unwrap() for row in rows]
 
 
+def set_task_alias(conn: Conn, alias: str, name: str) -> None:
+    conn_update(
+        conn, stmt.Set_task_alias, dict(alias=alias, name=name)
+    ).unwrap()
+
+
+def set_task_name(conn: Conn, new_name: str, old_name: str) -> None:
+    conn_update(
+        conn, stmt.Set_task_name, dict(new_name=new_name, old_name=old_name)
+    ).unwrap()
+
+
 def insert_event(conn: Conn, event: Event) -> None:
     conn_update(conn, stmt.Insert_event, event.to_dict()).unwrap()
 

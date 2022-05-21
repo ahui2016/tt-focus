@@ -139,11 +139,18 @@ help_set_db_folder = MultiText(
     cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
     en="Specify a folder for the database (tt-focus.db).",
 )
+help_task_name = MultiText(cn="指定任务类型。", en="Specify a task type.")
+help_set_alias = MultiText(cn="修改任务的别名", en="Modifies the alias of a task.")
+help_set_task_name = MultiText(cn="修改任务名称", en="Modifies the name of a task.")
+help_event_id = MultiText(cn="指定事件ID。", en="Specify an event-id.")
 help_set_last_work = MultiText(
     cn="修改指定事件的最后一个小节的工作时长。",
     en="Modifies the working time of the last lap of an event.",
 )
-help_event_id = MultiText(cn="指定事件ID。", en="Specify an event-id.")
+err_no_task = MultiText(
+    cn="修改任务属性时，必须用 '--task' 参数指定任务类型。",
+    en="Must use '--task' to specify a task type when modifying a task.",
+)
 
 
 @cli.command(
@@ -162,6 +169,19 @@ help_event_id = MultiText(cn="指定事件ID。", en="Specify an event-id.")
     type=click.Path(exists=True, file_okay=False),
     help=help_set_db_folder.str(lang),
 )
+@click.option("task_name", "-t", "--task", help=help_task_name.str(lang))
+@click.option(
+    "alias",
+    "-alias",
+    "--set-alias",
+    help=help_set_alias.str(lang),
+)
+@click.option(
+    "new_name",
+    "-name",
+    "--set-name",
+    help=help_set_task_name.str(lang),
+)
 @click.option("event_id", "-e", "--event", help=help_event_id.str(lang))
 @click.option(
     "last_work",
@@ -174,6 +194,9 @@ def set_command(
     ctx: click.Context,
     language: str,
     db_folder: str,
+    task_name: str,
+    alias: str | None,
+    new_name: str | None,
     last_work: int,
     event_id: str | None,
 ):
@@ -192,8 +215,16 @@ def set_command(
         set_db_folder(db_folder)
         ctx.exit()
 
+    if task_name is None and (alias is not None or new_name is not None):
+        print(err_no_task.str(lang))
+        ctx.exit()
+
     with connect() as conn:
-        if last_work:
+        if new_name:
+            util.set_task_name(conn, new_name, task_name, lang)
+        elif alias:
+            util.set_task_alias(conn, alias, task_name, lang)
+        elif last_work:
             util.set_last_work(conn, last_work, event_id, lang)
 
 
