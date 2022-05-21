@@ -76,6 +76,11 @@ Get_recent_events: Final = """
     SELECT * FROM event ORDER BY started DESC LIMIT ?;
 """
 
+Count_events_range: Final = """
+    SELECT count(*) FROM event ORDER BY started
+    WHERE started >= :start and started <= :end; 
+"""
+
 Update_laps: Final = """
     UPDATE event SET status=:status, laps=:laps, work=:work WHERE id=:id;
 """

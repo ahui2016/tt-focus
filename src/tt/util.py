@@ -405,6 +405,44 @@ def set_last_work(conn: Conn, n: int, event_id: str | None, lang: str) -> None:
             )
 
 
+def merge_events(conn: Conn, lang: str, *event_ids: str) -> None:
+    event_ids = tuple(set(event_ids))
+    if len(event_ids) < 2:
+        err = MultiText(
+            cn="必须至少指定两个事件。", en="Not enough events to merge (at least two)."
+        )
+        print(err.str(lang))
+
+    events: list[Event] = []
+    for e_id in event_ids:
+        match db.get_event_by_id(conn, e_id):
+            case Err(err):
+                print(err.str(lang))
+                return
+            case Ok(event):
+                events.append(event)
+
+    err1 = MultiText(
+        cn="这些事件并不是同一天的事件。", en="These events did not start on the same day."
+    )
+    err2 = MultiText(
+        cn="这些事件并非相邻的事件。", en="These events are not adjacent to each other."
+    )
+
+    events.sort(key=lambda x: x.started)
+    start_day = format_date(events[0].started)
+
+    for e in events[1:]:
+        if format_date(e.started) != start_day:
+            print(err1.str(lang))
+            return
+
+    count = db.count_events_range(conn, events[0].started, events[-1].started)
+    if len(events) == count:
+        print(err2.str(lang))
+        return
+
+
 def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
     match db.get_task_by_name(conn, name):
         case Err(_):

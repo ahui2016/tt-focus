@@ -168,6 +168,13 @@ def get_last_event(conn: Conn) -> Result[Event, MultiText]:
             raise UnknownReturn
 
 
+def count_events_range(conn: Conn, start: int, end: int) -> int:
+    row = conn.execute(
+        stmt.Count_events_range, dict(start=start, end=end)
+    ).fetchone()
+    return row[0]
+
+
 def get_recent_events(conn: Conn, n: int) -> Result[list[Event], MultiText]:
     rows = conn.execute(stmt.Get_recent_events, (n,)).fetchall()
     if rows is None:
