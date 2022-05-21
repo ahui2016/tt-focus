@@ -407,11 +407,17 @@ def set_last_work(conn: Conn, n: int, event_id: str | None, lang: str) -> None:
 
 def merge_events(conn: Conn, lang: str, *event_ids: str) -> None:
     event_ids = tuple(set(event_ids))
+    info = MultiText(
+        cn=f"\n即将合并事件: {event_ids}", en=f"\nEvents to be merged: {event_ids}"
+    )
+    print(info.str(lang))
+
     if len(event_ids) < 2:
         err = MultiText(
             cn="必须至少指定两个事件。", en="Not enough events to merge (at least two)."
         )
         print(err.str(lang))
+        return
 
     events: list[Event] = []
     for e_id in event_ids:
@@ -423,24 +429,48 @@ def merge_events(conn: Conn, lang: str, *event_ids: str) -> None:
                 events.append(event)
 
     err1 = MultiText(
-        cn="这些事件并不是同一天的事件。", en="These events did not start on the same day."
+        cn="这些事件的任务类型不相同。", en="These events have different task type."
     )
     err2 = MultiText(
+        cn="这些事件并不是同一天的事件。", en="These events did not start on the same day."
+    )
+    err3 = MultiText(
         cn="这些事件并非相邻的事件。", en="These events are not adjacent to each other."
     )
 
     events.sort(key=lambda x: x.started)
     start_day = format_date(events[0].started)
+    task_id = events[0].task_id
 
+    # 检查任务类型是否相同、是否同一天
     for e in events[1:]:
-        if format_date(e.started) != start_day:
+        if e.task_id != task_id:
             print(err1.str(lang))
             return
+        if format_date(e.started) != start_day:
+            print(err2.str(lang))
+            return
 
+    # 检查是否相邻
     count = db.count_events_range(conn, events[0].started, events[-1].started)
-    if len(events) == count:
-        print(err2.str(lang))
+    if len(events) != count:
+        print(err3.str(lang))
         return
+
+    # 合并
+    laps = events[0].laps
+    for e in events[1:]:
+        laps += e.laps
+        events[0].work += e.work
+
+    # 更新数据库
+    events[0].laps = laps
+    db.update_laps(conn, events[0])
+    for e in events[1:]:
+        db.delete_event(conn, e.id)
+
+    # 显示结果
+    show_event_details(conn, events[0], lang)
 
 
 def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:

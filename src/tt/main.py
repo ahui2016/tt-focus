@@ -282,23 +282,23 @@ def add(ctx: click.Context, name: str, alias: str):
 short_help = MultiText(cn="任务列表或事件列表。", en="List out tasks or events.")
 help_text = MultiText(
     cn="""任务列表或事件列表。
-    
+
     示例：
-    
+
     tt list         # 列出最近事件列表
-    
+
     tt list rc163d  # 列出一个事件的详细内容
-    
+
     tt list -t      # 列出全部任务类型
     """,
     en="""List out task or events.
-    
+
     Examples:
-    
+
     tt list         # List out recent events
-    
+
     tt list rc163d  # Show details about the event
-    
+
     tt list -t      # List out all task types
     """,
 )
@@ -441,5 +441,21 @@ def stop(ctx: click.Context):
     with connect() as conn:
         cfg = db.get_cfg(conn).unwrap()
         util.event_stop(conn, cfg, lang)
+
+    ctx.exit()
+
+
+short_help = MultiText(cn="合并事件。", en="Merge events.")
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.argument("events", type=str, nargs=-1)
+@click.pass_context
+def merge(ctx: click.Context, events: tuple[str, ...]):
+    """Merge events. 合并事件。"""
+    with connect() as conn:
+        util.merge_events(conn, lang, *events)
 
     ctx.exit()
