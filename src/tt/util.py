@@ -299,7 +299,10 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
         link_mark = ".." if lap[2] == 0 else "->"
         end = model.now() if lap[2] == 0 else lap[2]
         length = format_time_len(end - lap[1])
-        print(f"{lap[0]}  {start} {link_mark} {format_time(end)} [{length}]")
+        if lap[0] == LapName.Split.name:
+            print(f"{lap[0]}  {start} {link_mark} {format_time(end)} [{length}]")
+        else:
+            print(f"{lap[0]}  [{length}]")
     print()
 
     footer_running = MultiText(
