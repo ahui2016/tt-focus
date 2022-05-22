@@ -51,6 +51,9 @@ def show_info(ctx, _, value):
 help_info = MultiText(
     cn="显示关于本软件的一些有用信息。", en="Show information about tt-focus."
 )
+help_status = MultiText(
+    cn="完全等同 'tt status'", en="Same as the 'tt status' command."
+)
 
 
 @click.group(invoke_without_command=True)
@@ -71,14 +74,19 @@ help_info = MultiText(
     expose_value=False,
     callback=show_info,
 )
+@click.option("stat", "-s", is_flag=True, help=help_status.str(lang))
 @click.pass_context
-def cli(ctx: click.Context):
+def cli(ctx: click.Context, stat: bool):
     """tt-focus: command-line Time Tracker.
 
     命令行时间记录器，帮助你集中注意力。
 
     https://pypi.org/project/tt-focus/
     """
+    if stat:
+        ctx.invoke(status)
+        ctx.exit()
+
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
         ctx.exit()
@@ -446,16 +454,24 @@ def stop(ctx: click.Context):
 
 
 short_help = MultiText(cn="合并事件。", en="Merge events.")
+help_merge_preview = MultiText(cn="预览合并结果。", en="Preview the result of merge.")
 
 
 @cli.command(
     context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
 )
 @click.argument("events", type=str, nargs=-1)
+@click.option(
+    "preview",
+    "-p",
+    "--preview",
+    is_flag=True,
+    help=help_merge_preview.str(lang),
+)
 @click.pass_context
-def merge(ctx: click.Context, events: tuple[str, ...]):
+def merge(ctx: click.Context, events: tuple[str, ...], preview: bool):
     """Merge events. 合并事件。"""
     with connect() as conn:
-        util.merge_events(conn, lang, *events)
+        util.merge_events(conn, lang, preview, *events)
 
     ctx.exit()

@@ -300,7 +300,9 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
         end = model.now() if lap[2] == 0 else lap[2]
         length = format_time_len(end - lap[1])
         if lap[0] == LapName.Split.name:
-            print(f"{lap[0]}  {start} {link_mark} {format_time(end)} [{length}]")
+            print(
+                f"{lap[0]}  {start} {link_mark} {format_time(end)} [{length}]"
+            )
         else:
             print(f"{lap[0]}  [{length}]")
     print()
@@ -408,7 +410,9 @@ def set_last_work(conn: Conn, n: int, event_id: str | None, lang: str) -> None:
             )
 
 
-def merge_events(conn: Conn, lang: str, *event_ids: str) -> None:
+def merge_events(
+    conn: Conn, lang: str, preview: bool, *event_ids: str
+) -> None:
     event_ids = tuple(set(event_ids))
     info = MultiText(
         cn=f"\n即将合并事件: {event_ids}", en=f"\nEvents to be merged: {event_ids}"
@@ -466,14 +470,22 @@ def merge_events(conn: Conn, lang: str, *event_ids: str) -> None:
         laps += e.laps
         events[0].work += e.work
 
-    # 更新数据库
     events[0].laps = laps
-    db.update_laps(conn, events[0])
-    for e in events[1:]:
-        db.delete_event(conn, e.id)
+
+    # 更新数据库
+    if not preview:
+        db.update_laps(conn, events[0])
+        for e in events[1:]:
+            db.delete_event(conn, e.id)
 
     # 显示结果
     show_event_details(conn, events[0], lang)
+    info = MultiText(
+        cn="\n以上是预估合并结果，并未真正执行合并。\n",
+        en="Shown above is an estimate, did not actually merge.\n",
+    )
+    if preview:
+        print(info.str(lang))
 
 
 def get_task_by_name(conn: Conn, name: str) -> Result[Task, MultiText]:
