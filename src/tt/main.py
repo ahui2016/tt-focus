@@ -318,6 +318,7 @@ help_text = MultiText(
     """,
 )
 help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all task types.")
+help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more details.")
 
 
 @cli.command(
@@ -326,6 +327,7 @@ help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all t
     help=help_text.str(lang),
     name="list",
 )
+@click.option("verbose", "-v", "--verbose", is_flag=True, help=help_list_verbose.str(lang))
 @click.option(
     "t",
     "-t",
@@ -335,7 +337,7 @@ help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all t
 )
 @click.argument("event_id", required=False)
 @click.pass_context
-def list_command(ctx: click.Context, t: bool, event_id: str | None):
+def list_command(ctx: click.Context, verbose: bool, t: bool, event_id: str | None):
     """List out tasks or events. 任务列表或事件列表。"""
     with connect() as conn:
         if t:
@@ -344,7 +346,7 @@ def list_command(ctx: click.Context, t: bool, event_id: str | None):
         elif event_id:
             util.show_status(conn, lang, event_id)
         else:
-            util.show_recent_events(conn, lang)
+            util.show_recent_events(conn, lang, verbose)
 
     ctx.exit()
 

@@ -97,6 +97,10 @@ def format_time(t: int) -> str:
     return arrow.get(t).to("local").format("HH:mm:ss")
 
 
+def format_date_time(t: int) -> str:
+    return arrow.get(t).to("local").format("YYYY-MM-DD HH:mm:ss")
+
+
 def format_time_len(s: int) -> str:
     return str(timedelta(seconds=s))
 
@@ -370,7 +374,7 @@ def set_event_notes(conn: Conn, lang: str, notes: str, event_id: str | None) -> 
                 print(f"OK.")
 
 
-def show_recent_events(conn: Conn, lang: str) -> None:
+def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
     r = db.get_recent_events(conn, RecentItemsMax)
     if r.is_err():
         print(r.unwrap_err().str(lang))
@@ -401,9 +405,19 @@ def show_recent_events(conn: Conn, lang: str) -> None:
             status = f" {e.productivity()}"
 
         alias = f" ({t.alias})" if t.alias else ""
+        notes = f" Notes: {e.notes}" if e.notes else ""
 
-        print(f"* id: {e.id}, {t.name}{alias}, {start} [{work}]{status}")
-    print()
+        if verbose:
+            start = format_date_time(e.started)
+            end_time = e.laps[-1][2]
+            end = format_time(end_time) if end_time else format_time(model.now())
+            print(f"Event: {e.id}, {start} -> {end} [{work}]{status}")
+            print(f"Task : {t.name}{alias}{notes}\n")
+        else:
+            print(f"* id: {e.id}, {t.name}{alias}, {start} [{work}]{status}")
+
+    if not verbose:
+        print()
 
 
 def sum_event_work(laps: tuple[Lap, ...]) -> int:
