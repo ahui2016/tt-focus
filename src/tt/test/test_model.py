@@ -78,12 +78,13 @@ class TestEvent:
         assert lap[1] == b.started
         assert lap[2] + lap[3] == 0
         assert b.work == 0
+        assert b.notes == ""
 
     def test_init(self):
         a = model.new_task({"name": "aaa"}).unwrap()
         b = Event({"task_id": a.id})
         c = b.to_dict()
-        assert len(c.keys()) == 6
+        assert len(c.keys()) == 7
         assert b.id == c["id"]
         assert b.task_id == c["task_id"]
         assert b.started == c["started"]
@@ -91,6 +92,7 @@ class TestEvent:
         laps = model.unpack(c["laps"])
         assert b.laps == laps
         assert b.work == c["work"]
+        assert b.notes == c["notes"]
 
         started = 1652704503
         d = Event({"task_id": a.id, "started": started})
@@ -198,6 +200,7 @@ class TestEvent:
         assert a_dict["status"] == a.status.name
         assert a_dict["laps"] == model.pack(a.laps)
         assert a_dict["work"] == a.work
+        assert a_dict["notes"] == a.notes
 
     def test_stop_with_no_laps(self):
         """模拟执行 resume/stop 后事件包含零个小节的情况。"""

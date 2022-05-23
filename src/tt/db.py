@@ -147,6 +147,12 @@ def insert_event(conn: Conn, event: Event) -> None:
     conn_update(conn, stmt.Insert_event, event.to_dict()).unwrap()
 
 
+def set_event_notes(conn: Conn, notes: str, event_id: str) -> None:
+    conn_update(conn, stmt.Set_event_notes, dict(
+        notes=notes, id=event_id
+    )).unwrap()
+
+
 def get_event_by_id(conn: Conn, event_id: str) -> Result[Event, MultiText]:
     row = conn.execute(stmt.Get_event_by_id, (event_id,)).fetchone()
     if row is None:
@@ -177,7 +183,7 @@ def count_events_range(conn: Conn, start: int, end: int) -> int:
 
 def get_recent_events(conn: Conn, n: int) -> Result[list[Event], MultiText]:
     rows = conn.execute(stmt.Get_recent_events, (n,)).fetchall()
-    if rows is None:
+    if not rows:
         err = MultiText(
             cn="没有任何事件数据，可使用 'tt start TASK' 启动一个事件。",
             en="No event. Try 'tt start TASK' to make an event.",

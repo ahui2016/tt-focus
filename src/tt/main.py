@@ -155,6 +155,9 @@ help_set_last_work = MultiText(
     cn="修改指定事件的最后一个小节的工作时长。",
     en="Modifies the working time of the last lap of an event.",
 )
+help_set_notes = MultiText(
+    cn="添加或修改事件备注。", en="Adds or modifies the notes of an event"
+)
 err_no_task = MultiText(
     cn="修改任务属性时，必须用 '--task' 参数指定任务类型。",
     en="Must use '--task' to specify a task type when modifying a task.",
@@ -197,6 +200,7 @@ err_no_task = MultiText(
     type=int,
     help=help_set_last_work.str(lang),
 )
+@click.option("notes", "-notes", help=help_set_notes.str(lang))
 @click.pass_context
 def set_command(
     ctx: click.Context,
@@ -207,6 +211,7 @@ def set_command(
     new_name: str | None,
     last_work: int,
     event_id: str | None,
+    notes: str,
 ):
     """Change settings of tt-focus, or properties of a task/event.
 
@@ -232,6 +237,8 @@ def set_command(
             util.set_task_name(conn, new_name, task_name, lang)
         elif alias:
             util.set_task_alias(conn, alias, task_name, lang)
+        elif notes:
+            util.set_event_notes(conn, lang, notes, event_id)
         elif last_work:
             util.set_last_work(conn, last_work, event_id, lang)
 

@@ -136,6 +136,7 @@ class Event:
     status: EventStatus  # 状态
     laps: tuple[Lap, ...]  # 过程
     work: int  # 有效工作时间合计：秒
+    notes: str
 
     def __init__(self, d: dict):
         self.id = d.get("id", date_id())
@@ -146,6 +147,7 @@ class Event:
         lap = (LapName.Split.name, self.started, 0, 0)
         self.laps = unpack(d["laps"]) if d.get("laps", False) else (lap,)
         self.work = d.get("work", 0)
+        self.notes = d.get("notes", "")
 
     def to_dict(self) -> dict:
         return {
@@ -155,6 +157,7 @@ class Event:
             "status": self.status.name,
             "laps": pack(self.laps),
             "work": self.work,
+            "notes": self.notes
         }
 
     def productivity(self) -> str:

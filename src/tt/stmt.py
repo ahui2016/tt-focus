@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS event
     started   int    NOT NULL,
     status    text   NOT NULL COLLATE NOCASE,
     laps      blob   NOT NULL,
-    work      int    NOT NULL
+    work      int    NOT NULL,
+    notes     text   NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_task_id ON event(task_id);
@@ -64,8 +65,12 @@ Set_task_name: Final = """
 """
 
 Insert_event: Final = """
-    INSERT INTO event (id, task_id, started, status, laps, work)
-    VALUES (:id, :task_id, :started, :status, :laps, :work);
+    INSERT INTO event (id, task_id, started, status, laps, work, notes)
+    VALUES (:id, :task_id, :started, :status, :laps, :work, :notes);
+"""
+
+Set_event_notes: Final = """
+    UPDATE event SET notes=:notes WHERE id=:id;
 """
 
 Get_event_by_id: Final = """

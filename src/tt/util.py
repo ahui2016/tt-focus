@@ -156,7 +156,7 @@ def get_last_event(conn: Conn) -> Result[Event, MultiText]:
             if event.status is EventStatus.Stopped:
                 err = MultiText(
                     cn="当前无正在计时的事件，可使用 'tt start TASK' 启动一个事件。",
-                    en="No running event. Try 'tt start Task' to make an event.",
+                    en="No running event. Try 'tt start TASK' to make an event.",
                 )
                 return Err(err)
             else:
@@ -286,6 +286,10 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
     header = MultiText(
         cn=f"任务 | {task}\n事件 | {status}", en=f"Task | {task}\nEvent| {status}"
     )
+    if event.notes:
+        notes = MultiText(cn=f"\n备注 | {event.notes} ", en=f"\nNotes| {event.notes}")
+        header.append(notes)
+
     total = MultiText(
         cn=f"合计   {start} -> {now} [{work}]",
         en=f"total  {start} -> {now} [{work}]",
@@ -342,16 +346,48 @@ def show_status(conn: Conn, lang: str, event_id: str | None = None) -> None:
                 show_event_details(conn, event, lang)
 
 
+def set_event_notes(conn: Conn, lang: str, notes: str, event_id: str | None) -> None:
+    if event_id is None:
+        r = db.get_last_event(conn)
+    else:
+        r = db.get_event_by_id(conn, event_id)
+    match r:
+        case Err(err):
+            print(err.str(lang))
+        case Ok(event):
+            notes = notes.strip()
+            db.set_event_notes(conn, notes, event.id)
+            if event.notes:
+                if notes:
+                    print(f"{event.notes}\n\n->\n\n{notes}")
+                else:
+                    info = MultiText(
+                        cn=f"已删除事件 (id:{event.id}) 的备注: {event.notes}",
+                        en=f"Notes of event (id:{event.id}) is removed: {event.notes}"
+                    )
+                    print(info.str(lang))
+            else:
+                print(f"OK.")
+
+
 def show_recent_events(conn: Conn, lang: str) -> None:
     r = db.get_recent_events(conn, RecentItemsMax)
     if r.is_err():
         print(r.unwrap_err().str(lang))
         return
 
+    events = r.unwrap()
+    if not events:
+        info = MultiText(
+            cn="没有任何事件记录。可使用 'tt start TASK' 启动一个事件。",
+            en="There is no event. Try 'tt start TASK' to make an event."
+        )
+        print(info.str(lang))
+        return
+
     header = MultiText(cn="\n[最近的事件]\n", en="\nRecent events:\n")
     print(header.str(lang))
 
-    events = r.unwrap()
     for e in events:
         start = format_date(e.started)
         work = format_time_len(e.work)
@@ -469,6 +505,7 @@ def merge_events(
     for e in events[1:]:
         laps += e.laps
         events[0].work += e.work
+        events[0].notes += " " + e.notes
 
     events[0].laps = laps
 
