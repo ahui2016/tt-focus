@@ -157,7 +157,7 @@ class Event:
             "status": self.status.name,
             "laps": pack(self.laps),
             "work": self.work,
-            "notes": self.notes
+            "notes": self.notes,
         }
 
     def productivity(self) -> str:

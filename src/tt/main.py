@@ -54,6 +54,12 @@ help_info = MultiText(
 help_status = MultiText(
     cn="完全等同 'tt status'", en="Same as the 'tt status' command."
 )
+help_pause = MultiText(
+    cn="完全等同 'tt pause'", en="Same as the 'tt pause' command."
+)
+help_resume = MultiText(
+    cn="完全等同 'tt resume'", en="Same as the 'tt resume' command."
+)
 
 
 @click.group(invoke_without_command=True)
@@ -75,8 +81,10 @@ help_status = MultiText(
     callback=show_info,
 )
 @click.option("stat", "-s", is_flag=True, help=help_status.str(lang))
+@click.option("p", "-p", is_flag=True, help=help_pause.str(lang))
+@click.option("r", "-r", is_flag=True, help=help_resume.str(lang))
 @click.pass_context
-def cli(ctx: click.Context, stat: bool):
+def cli(ctx: click.Context, stat: bool, p: bool, r: bool):
     """tt-focus: command-line Time Tracker.
 
     命令行时间记录器，帮助你集中注意力。
@@ -85,6 +93,12 @@ def cli(ctx: click.Context, stat: bool):
     """
     if stat:
         ctx.invoke(status)
+        ctx.exit()
+    if p:
+        ctx.invoke(pause)
+        ctx.exit()
+    if r:
+        ctx.invoke(resume)
         ctx.exit()
 
     if ctx.invoked_subcommand is None:
@@ -327,7 +341,13 @@ help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more de
     help=help_text.str(lang),
     name="list",
 )
-@click.option("verbose", "-v", "--verbose", is_flag=True, help=help_list_verbose.str(lang))
+@click.option(
+    "verbose",
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help=help_list_verbose.str(lang),
+)
 @click.option(
     "t",
     "-t",
@@ -337,7 +357,9 @@ help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more de
 )
 @click.argument("event_id", required=False)
 @click.pass_context
-def list_command(ctx: click.Context, verbose: bool, t: bool, event_id: str | None):
+def list_command(
+    ctx: click.Context, verbose: bool, t: bool, event_id: str | None
+):
     """List out tasks or events. 任务列表或事件列表。"""
     with connect() as conn:
         if t:

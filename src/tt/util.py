@@ -291,7 +291,9 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
         cn=f"任务 | {task}\n事件 | {status}", en=f"Task | {task}\nEvent| {status}"
     )
     if event.notes:
-        notes = MultiText(cn=f"\n备注 | {event.notes} ", en=f"\nNotes| {event.notes}")
+        notes = MultiText(
+            cn=f"\n备注 | {event.notes} ", en=f"\nNotes| {event.notes}"
+        )
         header.append(notes)
 
     total = MultiText(
@@ -350,7 +352,9 @@ def show_status(conn: Conn, lang: str, event_id: str | None = None) -> None:
                 show_event_details(conn, event, lang)
 
 
-def set_event_notes(conn: Conn, lang: str, notes: str, event_id: str | None) -> None:
+def set_event_notes(
+    conn: Conn, lang: str, notes: str, event_id: str | None
+) -> None:
     if event_id is None:
         r = db.get_last_event(conn)
     else:
@@ -367,11 +371,11 @@ def set_event_notes(conn: Conn, lang: str, notes: str, event_id: str | None) -> 
                 else:
                     info = MultiText(
                         cn=f"已删除事件 (id:{event.id}) 的备注: {event.notes}",
-                        en=f"Notes of event (id:{event.id}) is removed: {event.notes}"
+                        en=f"Notes of event (id:{event.id}) is removed: {event.notes}",
                     )
                     print(info.str(lang))
             else:
-                print(f"OK.")
+                print("OK.")
 
 
 def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
@@ -384,7 +388,7 @@ def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
     if not events:
         info = MultiText(
             cn="没有任何事件记录。可使用 'tt start TASK' 启动一个事件。",
-            en="There is no event. Try 'tt start TASK' to make an event."
+            en="There is no event. Try 'tt start TASK' to make an event.",
         )
         print(info.str(lang))
         return
@@ -410,7 +414,9 @@ def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
         if verbose:
             start = format_date_time(e.started)
             end_time = e.laps[-1][2]
-            end = format_time(end_time) if end_time else format_time(model.now())
+            end = (
+                format_time(end_time) if end_time else format_time(model.now())
+            )
             print(f"Event: {e.id}, {start} -> {end} [{work}]{status}")
             print(f"Task : {t.name}{alias}{notes}\n")
         else:

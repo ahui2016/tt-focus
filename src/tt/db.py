@@ -148,9 +148,9 @@ def insert_event(conn: Conn, event: Event) -> None:
 
 
 def set_event_notes(conn: Conn, notes: str, event_id: str) -> None:
-    conn_update(conn, stmt.Set_event_notes, dict(
-        notes=notes, id=event_id
-    )).unwrap()
+    conn_update(
+        conn, stmt.Set_event_notes, dict(notes=notes, id=event_id)
+    ).unwrap()
 
 
 def get_event_by_id(conn: Conn, event_id: str) -> Result[Event, MultiText]:
