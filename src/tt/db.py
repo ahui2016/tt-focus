@@ -196,7 +196,7 @@ def get_recent_events(conn: Conn, n: int) -> Result[list[Event], MultiText]:
     return Ok(events)
 
 
-def get_dates(date: str, d_or_m: str) -> Result[tuple[int, int], MultiText]:
+def get_dates(date: str, ymd: str) -> Result[tuple[int, int], MultiText]:
     """检查日期格式是否符合要求。如果格式正式，则返回 Ok((start, end))"""
     err1 = MultiText(
         cn=f"日期格式错误: {date}  正确示范: 2022-05-01",
@@ -206,17 +206,26 @@ def get_dates(date: str, d_or_m: str) -> Result[tuple[int, int], MultiText]:
         cn=f"日期格式错误: {date}  正确示范: 2022-05",
         en=f"Wrong date: {date}  A correct example: 2022-05",
     )
-    if d_or_m == "day" and len(date) != 10:
+    err3 = MultiText(
+        cn=f"日期格式错误: {date}  正确示范: 2022",
+        en=f"Wrong date: {date}  A correct example: 2022",
+    )
+    if ymd == "day" and len(date) != 10:
         return Err(err1)
-    if d_or_m == "month" and len(date) != 7:
+    if ymd == "month" and len(date) != 7:
         return Err(err2)
+    if ymd == "year" and len(date) != 4:
+        return Err(err3)
 
     try:
         start = arrow.get(date)
-        end = start.shift(days=1) if d_or_m == "day" else start.shift(months=1)
+        end = start.shift(days=1) if ymd == "day" else start.shift(months=1)
     except arrow.parser.ParserError:
-        err = err1 if d_or_m == "day" else err2
+        err = err1 if ymd == "day" else err2
         return Err(err)
+
+    if ymd == "year" and date != start.format("YYYY"):
+        return Err(err3)
 
     return Ok((start.int_timestamp, end.int_timestamp))
 
@@ -233,6 +242,37 @@ def get_events_by_date(
             ).fetchall()
             events = [Event(dict(row)) for row in rows]
             return Ok(events)
+        case _:
+            raise UnknownReturn
+
+
+def count_events_by_date(conn: Conn, start: int, end: int) -> int:
+    row = conn.execute(
+        stmt.Count_events_by_date, dict(start=start, end=end)
+    ).fetchone()
+    return row[0]
+
+
+def events_year_count(
+    conn: Conn, year: str
+) -> Result[list[tuple[str, int]], MultiText]:
+    match get_dates(year, "year"):
+        case Err(err):
+            return Err(err)
+        case Ok(_):
+            months = [f"{n:02}" for n in range(1, 13)]
+            dates = [f"{year}-{m}" for m in months]
+            count_list = []
+            for date in dates:
+                start = arrow.get(date)
+                end = start.shift(months=1)
+                count = count_events_by_date(
+                    conn, start.int_timestamp, end.int_timestamp
+                )
+                count_list.append(count)
+
+            date_count = [x for x in zip(dates, count_list) if x[1] > 0]
+            return Ok(date_count)
         case _:
             raise UnknownReturn
 

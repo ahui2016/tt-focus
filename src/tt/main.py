@@ -338,6 +338,9 @@ help_list_day = MultiText(
 help_list_month = MultiText(
     cn="列出一个月的全部事件 (YYYY-MM)", en="All events on a month (YYYY-MM)"
 )
+help_list_year = MultiText(
+    cn="指定年份的每个月的事件数量 (YYYY)", en="Count events per month in a year (YYYY)"
+)
 help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more details.")
 
 
@@ -371,6 +374,11 @@ help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more de
     "-month",
     help=help_list_month.str(lang),
 )
+@click.option(
+    "year",
+    "-year",
+    help=help_list_year.str(lang),
+)
 @click.argument("event_id", required=False)
 @click.pass_context
 def list_command(
@@ -380,6 +388,7 @@ def list_command(
     event_id: str | None,
     day: str,
     month: str,
+    year: str,
 ):
     """List out tasks or events. 任务列表或事件列表。"""
     with connect() as conn:
@@ -392,6 +401,8 @@ def list_command(
             util.show_events_by_date(conn, day, "day", lang, verbose)
         elif month:
             util.show_events_by_date(conn, month, "month", lang, verbose)
+        elif year:
+            util.show_events_year_count(conn, year, lang)
         else:
             util.show_recent_events(conn, lang, verbose)
 

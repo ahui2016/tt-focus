@@ -90,6 +90,11 @@ Get_events_by_date: Final = """
     ORDER BY started DESC;
 """
 
+Count_events_by_date: Final = """
+    SELECT count(*) FROM event WHERE started >= :start and started < :end
+    ORDER BY started DESC;
+"""
+
 Update_laps: Final = """
     UPDATE event SET status=:status, laps=:laps, work=:work WHERE id=:id;
 """
