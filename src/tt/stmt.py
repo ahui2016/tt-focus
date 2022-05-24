@@ -82,8 +82,12 @@ Get_recent_events: Final = """
 """
 
 Count_events_range: Final = """
-    SELECT count(*) FROM event
-    WHERE started>=:start and started<=:end;
+    SELECT count(*) FROM event WHERE started>=:start and started<=:end;
+"""
+
+Get_events_by_date: Final = """
+    SELECT * FROM event WHERE started >= :start and started < :end
+    ORDER BY started DESC;
 """
 
 Update_laps: Final = """

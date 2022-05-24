@@ -378,24 +378,7 @@ def set_event_notes(
                 print("OK.")
 
 
-def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
-    r = db.get_recent_events(conn, RecentItemsMax)
-    if r.is_err():
-        print(r.unwrap_err().str(lang))
-        return
-
-    events = r.unwrap()
-    if not events:
-        info = MultiText(
-            cn="没有任何事件记录。可使用 'tt start TASK' 启动一个事件。",
-            en="There is no event. Try 'tt start TASK' to make an event.",
-        )
-        print(info.str(lang))
-        return
-
-    header = MultiText(cn="\n[最近的事件]\n", en="\nRecent events:\n")
-    print(header.str(lang))
-
+def show_events(conn: Conn, events: list[Event], verbose: bool) -> None:
     for e in events:
         start = format_date(e.started)
         work = format_time_len(e.work)
@@ -424,6 +407,45 @@ def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
 
     if not verbose:
         print()
+
+
+def show_recent_events(conn: Conn, lang: str, verbose: bool = False) -> None:
+    r = db.get_recent_events(conn, RecentItemsMax)
+    if r.is_err():
+        print(r.unwrap_err().str(lang))
+        return
+
+    events = r.unwrap()
+    if not events:
+        info = MultiText(
+            cn="没有任何事件记录。可使用 'tt start TASK' 启动一个事件。",
+            en="There is no event. Try 'tt start TASK' to make an event.",
+        )
+        print(info.str(lang))
+        return
+
+    header = MultiText(cn="\n[最近的事件]\n", en="\nRecent events:\n")
+    print(header.str(lang))
+    show_events(conn, events, verbose)
+
+
+def show_events_by_date(
+    conn: Conn, date: str, d_or_m: str, lang: str, verbose: bool = False
+) -> None:
+    r = db.get_events_by_date(conn, date, d_or_m)
+    if r.is_err():
+        print(r.unwrap_err().str(lang))
+        return
+
+    events = r.unwrap()
+    if not events:
+        info = MultiText(
+            cn=f"该日期没有事件: {date}", en=f"There is no event on {date}"
+        )
+        print(info.str(lang))
+        return
+
+    show_events(conn, events, verbose)
 
 
 def sum_event_work(laps: tuple[Lap, ...]) -> int:

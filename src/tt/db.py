@@ -1,5 +1,7 @@
 import sqlite3
 from dataclasses import asdict
+
+import arrow
 import msgpack
 from pathlib import Path
 from appdirs import AppDirs
@@ -192,6 +194,47 @@ def get_recent_events(conn: Conn, n: int) -> Result[list[Event], MultiText]:
 
     events = [Event(dict(row)) for row in rows]
     return Ok(events)
+
+
+def get_dates(date: str, d_or_m: str) -> Result[tuple[int, int], MultiText]:
+    """检查日期格式是否符合要求。如果格式正式，则返回 Ok((start, end))"""
+    err1 = MultiText(
+        cn=f"日期格式错误: {date}  正确示范: 2022-05-01",
+        en=f"Wrong date: {date}  A correct example: 2022-05-01",
+    )
+    err2 = MultiText(
+        cn=f"日期格式错误: {date}  正确示范: 2022-05",
+        en=f"Wrong date: {date}  A correct example: 2022-05",
+    )
+    if d_or_m == "day" and len(date) != 10:
+        return Err(err1)
+    if d_or_m == "month" and len(date) != 7:
+        return Err(err2)
+
+    try:
+        start = arrow.get(date)
+        end = start.shift(days=1) if d_or_m == "day" else start.shift(months=1)
+    except arrow.parser.ParserError:
+        err = err1 if d_or_m == "day" else err2
+        return Err(err)
+
+    return Ok((start.int_timestamp, end.int_timestamp))
+
+
+def get_events_by_date(
+    conn: Conn, date: str, d_or_m: str
+) -> Result[list[Event], MultiText]:
+    match get_dates(date, d_or_m):
+        case Err(err):
+            return Err(err)
+        case Ok((start, end)):
+            rows = conn.execute(
+                stmt.Get_events_by_date, dict(start=start, end=end)
+            ).fetchall()
+            events = [Event(dict(row)) for row in rows]
+            return Ok(events)
+        case _:
+            raise UnknownReturn
 
 
 def update_laps(conn: Conn, event: Event) -> None:

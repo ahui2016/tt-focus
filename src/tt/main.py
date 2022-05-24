@@ -332,6 +332,12 @@ help_text = MultiText(
     """,
 )
 help_list_tasks = MultiText(cn="列出全部任务类型。", en="List out all task types.")
+help_list_day = MultiText(
+    cn="列出某一天的全部事件 (YYYY-MM-DD)", en="All events on a day (YYYY-MM-DD)"
+)
+help_list_month = MultiText(
+    cn="列出一个月的全部事件 (YYYY-MM)", en="All events on a month (YYYY-MM)"
+)
 help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more details.")
 
 
@@ -355,10 +361,25 @@ help_list_verbose = MultiText(cn="显示更详细的信息。", en="Show more de
     is_flag=True,
     help=help_list_tasks.str(lang),
 )
+@click.option(
+    "day",
+    "-day",
+    help=help_list_day.str(lang),
+)
+@click.option(
+    "month",
+    "-month",
+    help=help_list_month.str(lang),
+)
 @click.argument("event_id", required=False)
 @click.pass_context
 def list_command(
-    ctx: click.Context, verbose: bool, t: bool, event_id: str | None
+    ctx: click.Context,
+    verbose: bool,
+    t: bool,
+    event_id: str | None,
+    day: str,
+    month: str,
 ):
     """List out tasks or events. 任务列表或事件列表。"""
     with connect() as conn:
@@ -367,6 +388,10 @@ def list_command(
             util.show_tasks(tasks, lang)
         elif event_id:
             util.show_status(conn, lang, event_id)
+        elif day:
+            util.show_events_by_date(conn, day, "day", lang, verbose)
+        elif month:
+            util.show_events_by_date(conn, month, "month", lang, verbose)
         else:
             util.show_recent_events(conn, lang, verbose)
 
