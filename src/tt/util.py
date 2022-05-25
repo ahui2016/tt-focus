@@ -275,8 +275,12 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
     date = format_date(event.started)
     status = f"(id:{event.id}) {date} **{event.status.name.lower()}**"
     start = format_time(event.started)
-    now = format_time(model.now())
     work = format_time_len(event.work)
+
+    if event.status is EventStatus.Stopped:
+        end = format_time(event.laps[-1][2])
+    else:
+        end = format_time(model.now())
 
     header = MultiText(
         cn=f"任务 | {task}\n事件 | {status}", en=f"Task | {task}\nEvent| {status}"
@@ -288,8 +292,8 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
         header.append(notes)
 
     total = MultiText(
-        cn=f"合计   {start} -> {now} [{work}]",
-        en=f"total  {start} -> {now} [{work}]",
+        cn=f"合计   {start} -> {end} [{work}]",
+        en=f"total  {start} -> {end} [{work}]",
     )
     print(
         f"\n{header.str(lang)}\n\n{total.str(lang)}\n-------------------------------------"
