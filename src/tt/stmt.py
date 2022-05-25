@@ -102,3 +102,11 @@ Update_laps: Final = """
 Delete_event: Final = """
     DELETE FROM event WHERE id=?;
 """
+
+Delete_events: Final = """
+    DELETE FROM event WHERE task_id=?;
+"""
+
+Delete_task: Final = """
+    DELETE FROM task WHERE id=?;
+"""

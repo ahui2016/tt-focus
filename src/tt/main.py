@@ -542,3 +542,55 @@ def merge(ctx: click.Context, events: tuple[str, ...], preview: bool):
         util.merge_events(conn, lang, preview, *events)
 
     ctx.exit()
+
+
+short_help = MultiText(cn="删除事件或任务。", en="Delete an event or a task.")
+help_del_event = MultiText(cn="指定要删除的事件的ID", en="Delete an event.")
+help_del_task = MultiText(cn="指定要删除的任务类型", en="Delete a task.")
+info_del = MultiText(cn="确认删除", en="Confirm deletion")
+info_del_task = MultiText(
+    cn="注意，会同时删除与该任务关联的全部事件，请确认",
+    en="Delete the task and all events belongs to it?",
+)
+
+
+def del_event(conn, event_id: str) -> None:
+    match db.get_event_by_id(conn, event_id):
+        case Err(err):
+            print(err.str(lang))
+        case Ok(event):
+            print()
+            util.show_events(conn, [event], True)
+            click.confirm(info_del.str(lang), abort=True)
+            db.delete_event(conn, event_id)
+            print("OK, deleted.")
+
+
+def del_task(conn, name: str) -> None:
+    match db.get_task_by_name(conn, name):
+        case Err(err):
+            print(f"{err.str(lang)}: {name}")
+        case Ok(task):
+            print(f"\nTask: {task}\n")
+            click.confirm(info_del_task.str(lang), abort=True)
+            db.delete_task(conn, task.id)
+            print("OK deleted.")
+
+
+@cli.command(
+    context_settings=CONTEXT_SETTINGS, short_help=short_help.str(lang)
+)
+@click.option("event_id", "-e", "--event", help=help_del_event.str(lang))
+@click.option("task_name", "-t", "--task", help=help_del_task.str(lang))
+@click.pass_context
+def delete(ctx: click.Context, event_id: str, task_name: str):
+    """Delete an event or a task. 删除事件或任务。"""
+    with connect() as conn:
+        if event_id:
+            del_event(conn, event_id)
+        elif task_name:
+            del_task(conn, task_name)
+        else:
+            print(ctx.get_help())
+
+    ctx.exit()

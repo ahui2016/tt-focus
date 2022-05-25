@@ -293,3 +293,8 @@ def update_laps(conn: Conn, event: Event) -> None:
 
 def delete_event(conn: Conn, event_id: str) -> None:
     conn_update(conn, stmt.Delete_event, (event_id,)).unwrap()
+
+
+def delete_task(conn: Conn, task_id: str) -> None:
+    conn_update(conn, stmt.Delete_events, (task_id,)).unwrap()
+    conn_update(conn, stmt.Delete_task, (task_id,)).unwrap()
