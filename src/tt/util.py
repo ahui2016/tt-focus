@@ -26,11 +26,10 @@ def show_cfg_cn(app_cfg: AppConfig, cfg: Config):
     print()
     print(f"         语言: {app_cfg['lang']}")
     print(f"   数据库文件: {app_cfg['db_path']}")
-    print(f" 工作时间下限: {cfg['split_min']} 分钟")
-    print(f" 休息时间下限: {cfg['pause_min']} 分钟")
-    print(f" 休息时间上限: {cfg['pause_max']} 分钟")
+    print(f" 工作时长下限: {cfg['split_min']} 分钟")
+    print(f" 休息时长下限: {cfg['pause_min']} 分钟")
+    print(f" 休息时长上限: {cfg['pause_max']} 分钟")
     print()
-    print("* 使用命令 'tt help min' 或 'tt help max' 可查看关于时间上下限的说明。\n")
 
 
 def show_cfg_en(app_cfg: AppConfig, cfg: Config):
@@ -40,10 +39,6 @@ def show_cfg_en(app_cfg: AppConfig, cfg: Config):
     print(f" [pause min] {cfg['pause_min']} minutes")
     print(f" [pause max] {cfg['pause_max']} minutes")
     print()
-    print(
-        "* Try 'tt help min' or 'tt help max' to read more about time limits."
-        "\n"
-    )
 
 
 def show_cfg(conn: Conn, app_cfg: AppConfig, cfg: Config | None = None):
@@ -237,10 +232,8 @@ def event_pause(conn: Conn, cfg: Config, lang: str) -> None:
 def del_if_below_min(conn: Conn, cfg: Config, lang: str, event: Event) -> None:
     if event.work <= cfg["split_min"]:
         info = MultiText(
-            cn="以上所示事件，由于总工作时长小于下限，已自动删除。\n"
-            + "可使用命令 'tt help min' 查看关于时长下限的说明。\n",
-            en="The event above is automatically deleted.\n"
-            + "Run 'tt help min' to get more information.\n",
+            cn="以上所示事件，由于总工作时长小于下限，已自动删除。\n",
+            en="The event above is automatically deleted.\n",
         )
         print(info.str(lang))
         db.delete_event(conn, event.id)
@@ -254,10 +247,8 @@ def event_resume(conn: Conn, cfg: Config, lang: str) -> None:
     if event.status is EventStatus.Stopped:
         del_if_below_min(conn, cfg, lang, event)
         info = MultiText(
-            cn="以上所示事件休息时长大于上限，已自动结束，并自动启动了新事件。\n"
-            + "可使用命令 'tt help max' 查看关于时长上限的说明。\n",
-            en="The event above is automatically stopped, and an new event is started.\n"
-            + "Run 'tt help max' to get more information.\n",
+            cn="以上所示事件休息时长大于上限，已自动结束，并自动启动了新事件。\n",
+            en="The event above is automatically stopped, and an new event is started.\n",
         )
         print(info.str(lang))
         info = event_start(conn, None)

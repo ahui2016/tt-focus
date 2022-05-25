@@ -41,8 +41,8 @@ def show_info(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
     print()
-    print(f" [tt-focus] {__file__}")
-    print(f"  [version] {__version__}")
+    print(f"  [tt-focus] {__file__}")
+    print(f"   [version] {__version__}")
     with connect() as conn:
         util.show_cfg(conn, app_cfg, config)
     ctx.exit()
@@ -157,6 +157,15 @@ help_text = MultiText(
     cn="更改 tt-focus 的设置，或更改任务/事件的属性。",
     en="Change settings of tt-focus, or properties of a task/event.",
 )
+help_set_split_min = MultiText(
+    cn="设置工作时长下限 (单位：分钟)", en="Set the minimum length(minutes) of a 'split'."
+)
+help_set_pause_min = MultiText(
+    cn="设置休息时长下限 (单位：分钟)", en="Set the minimum length(minutes) of a 'pause'."
+)
+help_set_pause_max = MultiText(
+    cn="设置休息时长上限 (单位：分钟)", en="Set the maximum length(minutes) of a 'pause'."
+)
 help_set_db_folder = MultiText(
     cn="指定一个文件夹，用于保存数据库文件(tt-focus.db)。",
     en="Specify a folder for the database (tt-focus.db).",
@@ -188,6 +197,24 @@ err_no_task = MultiText(
     type=click.Choice(["cn", "en"]),
 )
 @click.option(
+    "split_min",
+    "--split-min",
+    type=int,
+    help=help_set_split_min.str(lang),
+)
+@click.option(
+    "pause_min",
+    "--pause-min",
+    type=int,
+    help=help_set_pause_min.str(lang),
+)
+@click.option(
+    "pause_max",
+    "--pause-max",
+    type=int,
+    help=help_set_pause_max.str(lang),
+)
+@click.option(
     "db_folder",
     "-db",
     "--db-folder",
@@ -198,13 +225,11 @@ err_no_task = MultiText(
 @click.option(
     "alias",
     "-alias",
-    "--set-alias",
     help=help_set_alias.str(lang),
 )
 @click.option(
     "new_name",
     "-name",
-    "--set-name",
     help=help_set_task_name.str(lang),
 )
 @click.option("event_id", "-e", "--event", help=help_event_id.str(lang))
@@ -219,6 +244,9 @@ err_no_task = MultiText(
 def set_command(
     ctx: click.Context,
     language: str,
+    split_min: int,
+    pause_min: int,
+    pause_max: int,
     db_folder: str,
     task_name: str,
     alias: str | None,
@@ -247,7 +275,33 @@ def set_command(
         ctx.exit()
 
     with connect() as conn:
-        if new_name:
+        cfg = db.get_cfg(conn).unwrap()
+
+        if split_min:
+            cfg["split_min"] = split_min
+            db.update_cfg(conn, cfg)
+            info = MultiText(
+                cn=f"工作时长下限: {cfg['split_min']} 分钟",
+                en=f"[split min] {cfg['split_min']} minutes",
+            )
+            print(info.str(lang))
+        elif pause_min:
+            cfg["pause_min"] = pause_min
+            db.update_cfg(conn, cfg)
+            info = MultiText(
+                cn=f"休息时长下限: {cfg['pause_min']} 分钟",
+                en=f"[pause min] {cfg['pause_min']} minutes",
+            )
+            print(info.str(lang))
+        elif pause_max:
+            cfg["pause_max"] = pause_max
+            db.update_cfg(conn, cfg)
+            info = MultiText(
+                cn=f" 休息时长上限: {cfg['pause_max']} 分钟",
+                en=f"[pause max] {cfg['pause_max']} minutes",
+            )
+            print(info.str(lang))
+        elif new_name:
             util.set_task_name(conn, new_name, task_name, lang)
         elif alias:
             util.set_task_alias(conn, alias, task_name, lang)
@@ -255,6 +309,8 @@ def set_command(
             util.set_event_notes(conn, lang, notes, event_id)
         elif last_work:
             util.set_last_work(conn, last_work, event_id, lang)
+        else:
+            print(ctx.get_help())
 
 
 short_help = MultiText(cn="新增任务类型。", en="Add a new type of task.")
