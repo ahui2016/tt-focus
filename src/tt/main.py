@@ -48,6 +48,18 @@ def show_info(ctx, _, value):
     ctx.exit()
 
 
+help_text = MultiText(
+    cn="""tt-focus: Command-line time tracker to help focus.
+
+    专门为了帮助集中注意力而设计的命令行时间记录器。
+    
+    https://pypi.org/project/tt-focus/
+    """,
+    en="""tt-focus: Command-line time tracker to help focus.
+
+    https://pypi.org/project/tt-focus/
+    """,
+)
 help_info = MultiText(
     cn="显示关于本软件的一些有用信息。", en="Show information about tt-focus."
 )
@@ -62,7 +74,7 @@ help_resume = MultiText(
 )
 
 
-@click.group(invoke_without_command=True)
+@click.group(invoke_without_command=True, help=help_text.str(lang))
 @click.help_option("-h", "--help")
 @click.version_option(
     __version__,
@@ -85,9 +97,9 @@ help_resume = MultiText(
 @click.option("r", "-r", is_flag=True, help=help_resume.str(lang))
 @click.pass_context
 def cli(ctx: click.Context, stat: bool, p: bool, r: bool):
-    """tt-focus: command-line Time Tracker.
+    """tt-focus: Command-line time tracker to help focus.
 
-    命令行时间记录器，帮助你集中注意力。
+    专门为了帮助集中注意力而设计的命令行时间记录器。
 
     https://pypi.org/project/tt-focus/
     """
@@ -315,21 +327,6 @@ def set_command(
 
 short_help = MultiText(cn="新增任务类型。", en="Add a new type of task.")
 
-help_text = MultiText(
-    cn="""新增任务类型。
-
-    示例:
-
-    tt add coding              # 添加一种名为 coding 的任务
-
-    tt add coding -alias 编程  # 添加一种名为 coding 的任务，别名 "编程"
-    """,
-    en="""Add a new type of task.
-
-    NAME is the name of the new task type.
-    """,
-)
-
 help_add_alias = MultiText(
     cn="新任务类型的别名。", en="Set an alias of the new task type."
 )
@@ -338,7 +335,6 @@ help_add_alias = MultiText(
 @cli.command(
     context_settings=CONTEXT_SETTINGS,
     short_help=short_help.str(lang),
-    help=help_text.str(lang),
 )
 @click.argument("name")
 @click.option(
