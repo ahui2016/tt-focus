@@ -533,13 +533,9 @@ def merge_events(
         cn="这些事件的任务类型不相同。\n", en="These events have different task type.\n"
     )
     err2 = MultiText(
-        cn="这些事件并不是同一天的事件。\n",
-        en="These events did not start on the same day.\n",
-    )
-    err3 = MultiText(
         cn="不可合并未结束的事件。\n", en="Cannot merge. The event has not stopped yet.\n"
     )
-    err4 = MultiText(
+    err3 = MultiText(
         cn="这些事件并非相邻的事件。\n",
         en="These events are not adjacent to each other.\n",
     )
@@ -548,22 +544,19 @@ def merge_events(
     start_day = format_date(events[0].started)
     task_id = events[0].task_id
 
-    # 检查任务类型是否相同、是否同一天、是否未结束
+    # 检查任务类型是否相同、是否未结束
     for e in events[1:]:
         if e.task_id != task_id:
             print(err1.str(lang))
             return
-        if format_date(e.started) != start_day:
-            print(err2.str(lang))
-            return
         if e.status is not EventStatus.Stopped:
-            print(err3.str(lang))
+            print(err2.str(lang))
             return
 
     # 检查是否相邻
     count = db.count_events_range(conn, events[0].started, events[-1].started)
     if len(events) != count:
-        print(err4.str(lang))
+        print(err3.str(lang))
         return
 
     # 合并
