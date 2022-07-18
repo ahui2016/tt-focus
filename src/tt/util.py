@@ -277,7 +277,7 @@ def show_event_details(conn: Conn, event: Event, lang: str) -> None:
     start = format_time(event.started)
     work = format_time_len(event.work)
 
-    if event.status is EventStatus.Stopped:
+    if event.status is EventStatus.Stopped and len(event.laps) > 0:
         end = format_time(event.laps[-1][2])
     else:
         end = format_time(model.now())
@@ -362,7 +362,7 @@ def set_event_notes(
             db.set_event_notes(conn, notes, event.id)
             if event.notes:
                 if notes:
-                    print(f"{event.notes}\n\n->\n\n{notes}")
+                    print(f"{event.notes}\n->\n{notes}")
                 else:
                     info = MultiText(
                         cn=f"已删除事件 (id:{event.id}) 的备注: {event.notes}",
